@@ -1,8 +1,13 @@
 #ifndef CLASS_HPP
 #define CLASS_HPP
 
+#include "command.hpp"
+
+#include <map>
+
 class Class {
-    // Fill in with things later
+    public:
+        std::map<std::string, CommandList> functions;
 };
 
 #endif
