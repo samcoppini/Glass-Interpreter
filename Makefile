@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=$(FLAGS) -std=c++17 -Wall -Wextra -Werror -pedantic -g
+CFLAGS=$(FLAGS) -std=c++17 -Wall -Wextra -Werror -pedantic -Iinclude -g
 SOURCES=$(wildcard src/*.cpp)
 OBJS=$(SOURCES:src/%.cpp=objs/%.o)
 
