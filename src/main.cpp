@@ -5,9 +5,15 @@
 #include <iostream>
 
 void print_commands(const CommandList &commands, int tab_level) {
+    if (commands.size() == 0) {
+        return;
+    }
+
+    std::cout << "\n";
     for (int i = 0; i < tab_level; i++) {
         std::cout << "  ";
     }
+
     for (const auto &command: commands) {
         switch (command.type) {
             case CommandType::AssignClass:
@@ -70,10 +76,11 @@ void print_commands(const CommandList &commands, int tab_level) {
                 } else {
                     std::cout << "(" << str << ")";
                 }
-                std::cout << "\n";
                 print_commands(command.loop_body, tab_level + 1);
-                for (int i = 0; i < tab_level; i++) {
-                    std::cout << "  ";
+                if (command.loop_body.size() > 0) {
+                    for (int i = 0; i < tab_level; i++) {
+                        std::cout << "  ";
+                    }
                 }
                 std::cout << "\\";
                 break;
@@ -91,6 +98,10 @@ void print_classes(const std::map<std::string, Class> &classes) {
         } else {
             std::cout << "(" << class_pair.first << ")";
         }
+        if (class_pair.second.functions.size() == 0) {
+            std::cout << "}";
+            continue;
+        }
         std::cout << "\n";
         for (const auto &func: class_pair.second.functions) {
             std::cout << "  [";
@@ -99,16 +110,30 @@ void print_classes(const std::map<std::string, Class> &classes) {
             } else {
                 std::cout << "(" << func.first << ")";
             }
-            std::cout << "\n";
             print_commands(func.second, 2);
-            std::cout << "  ]\n";
+            if (func.second.size() > 0) {
+                std::cout << "  ";
+            }
+            std::cout << "]\n";
         }
         std::cout << "}\n";
     }
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
+    std::string filename;
+    bool format_code = false;
+
+    for (int i = 1; i < argc; i++) {
+        std::string arg{argv[i]};
+        if (arg == "-f" or arg == "--format") {
+            format_code = true;
+        } else {
+            filename = arg;
+        }
+    }
+
+    if (filename == "") {
         std::cerr << "Please provide a Glass file to use the interpreter!\n";
         return 1;
     }
@@ -125,7 +150,7 @@ int main(int argc, char *argv[]) {
     } else if (classes->count("M") == 0) {
         std::cerr << "Error! Class \"M\" is not defined!\n";
         return 1;
-    } else {
+    } else if (format_code) {
         print_classes(*classes);
     }
 
