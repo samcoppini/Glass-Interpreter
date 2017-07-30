@@ -9,10 +9,10 @@ enum class CommandType {
     AssignClass,
     AssignSelf,
     AssignValue,
+    DupElement,
     ExecuteFunc,
     GetFunction,
     GetValue,
-    DupElement,
     PopStack,
     PushName,
     PushNumber,
@@ -22,12 +22,11 @@ enum class CommandType {
 };
 
 class Command {
-    protected:
+    public:
         CommandType type;
         std::variant<std::string, double> data;
         std::vector<Command> loop_body;
 
-    public:
         Command(CommandType type);
         Command(CommandType type, double dval);
         Command(CommandType type, const std::string &sval);
