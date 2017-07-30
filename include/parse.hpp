@@ -14,5 +14,7 @@ std::optional<std::string> get_name(std::ifstream &file);
 std::optional<std::pair<std::string, CommandList>> get_func(std::ifstream &file);
 std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file);
 std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file);
+void print_commands(const CommandList &commands, int tab_level);
+void print_classes(const std::map<std::string, Class> &classes);
 
 #endif
