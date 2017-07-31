@@ -18,7 +18,9 @@ enum class Builtin: int {
     StrSplit,
     StrEqual,
     StrNumtoChar,
-    StrChartoNum
+    StrChartoNum,
+    VarNew,
+    VarDelete
 };
 
 std::map<std::string, Class> get_builtins();

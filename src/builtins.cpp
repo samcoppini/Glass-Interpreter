@@ -2,6 +2,7 @@
 #include "class.hpp"
 #include "variable.hpp"
 
+#include <cctype>
 #include <iostream>
 #include <optional>
 
@@ -20,7 +21,11 @@ std::map<std::string, Class> get_builtins() {
     string.functions["ns"] = {Builtin::StrNumtoChar};
     string.functions["sn"] = {Builtin::StrChartoNum};
 
-    return {{"O", output}, {"S", string}};
+    Class vars;
+    vars.functions["n"] = {Builtin::VarNew};
+    vars.functions["d"] = {Builtin::VarDelete};
+
+    return {{"O", output}, {"S", string}, {"V", vars}};
 }
 
 // Handles a builtin function, returning true if there was an error
@@ -218,6 +223,37 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 return true;
             }
             stack.emplace_back(static_cast<double>(chr->front()));
+            break;
+        }
+
+        case Builtin::VarNew: {
+            // Variable names start with digits are interpreted as globals, and
+            // may not be used by the programmer, so they won't conflict with
+            // the player's names, making integral values perfect for V.n
+            static int cur_var = 0;
+            stack.emplace_back(VarType::Name, std::to_string(cur_var++));
+            break;
+        }
+
+        case Builtin::VarDelete: {
+            // Not exactly sure what this method is supposed to do, and it does
+            // nothing in reference implementation??? So I just pop the stack and
+            // check that it's an auto-generated name, and call that good
+            auto top = pop_stack(stack);
+            if (not top) {
+                return true;
+            }
+            auto name = top->get_name();
+            if (not name) {
+                std::cerr << "Error! Cannot delete non-name!\n";
+                return true;
+            }
+            for (auto c: *name) {
+                if (not std::isdigit(c)) {
+                    std::cerr << "Error! Cannot delete non-generated name!\n";
+                    return true;
+                }
+            }
             break;
         }
     }
