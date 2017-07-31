@@ -1,3 +1,4 @@
+#include "builtins.hpp"
 #include "class.hpp"
 #include "function.hpp"
 #include "instance.hpp"
@@ -215,6 +216,12 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 }
                 break;
             }
+
+            case CommandType::BuiltinFunction:
+                if (handle_builtin(std::get<Builtin>(command.data), stack)) {
+                    return true;
+                }
+                break;
         }
 
         // Prints out the current stack if debug mode is on

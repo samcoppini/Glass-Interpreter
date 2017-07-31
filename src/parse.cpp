@@ -1,3 +1,4 @@
+#include "builtins.hpp"
 #include "parse.hpp"
 
 #include <cctype>
@@ -277,7 +278,7 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
 // Returns all of the classes in the file, or nullopt if there's some sort of
 // parsing error
 std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file) {
-    std::map<std::string, Class> classes;
+    auto classes = get_builtins();
     char c;
 
     while (file.get(c)) {
@@ -389,6 +390,9 @@ void print_commands(const CommandList &commands, int tab_level) {
                 std::cout << "\\";
                 break;
             }
+
+            case CommandType::BuiltinFunction:
+                break;
         }
     }
     std::cout << "\n";
@@ -397,6 +401,10 @@ void print_commands(const CommandList &commands, int tab_level) {
 // Prints out a formatted version of the given classes
 void print_classes(const std::map<std::string, Class> &classes) {
     for (const auto &class_pair: classes) {
+        auto name = class_pair.first;
+        if (name == "A" or name == "S" or name == "V" or name == "O" or name == "I") {
+            continue;
+        }
         std::cout << "{";
         if (class_pair.first.size() == 1) {
             std::cout << class_pair.first;
@@ -404,7 +412,7 @@ void print_classes(const std::map<std::string, Class> &classes) {
             std::cout << "(" << class_pair.first << ")";
         }
         if (class_pair.second.functions.size() == 0) {
-            std::cout << "}";
+            std::cout << "}\n";
             continue;
         }
         std::cout << "\n";
