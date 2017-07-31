@@ -190,7 +190,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 std::cerr << "Error! Can't compare non-numbers!\n";
                 return true;
             }
-            stack.emplace_back(*num1 >= *num2 ? 1.0: 0.0);
+            stack.emplace_back(*num1 > *num2 ? 1.0: 0.0);
             break;
         }
 
@@ -204,7 +204,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 std::cerr << "Error! Can't compare non-numbers!\n";
                 return true;
             }
-            stack.emplace_back(*num1 > *num2 ? 1.0: 0.0);
+            stack.emplace_back(*num1 >= *num2 ? 1.0: 0.0);
             break;
         }
 
@@ -218,7 +218,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 std::cerr << "Error! Can't compare non-numbers!\n";
                 return true;
             }
-            stack.emplace_back(*num1 <= *num2 ? 1.0: 0.0);
+            stack.emplace_back(*num1 < *num2 ? 1.0: 0.0);
             break;
         }
 
@@ -232,7 +232,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 std::cerr << "Error! Can't compare non-numbers!\n";
                 return true;
             }
-            stack.emplace_back(*num1 < *num2 ? 1.0: 0.0);
+            stack.emplace_back(*num1 <= *num2 ? 1.0: 0.0);
             break;
         }
 
