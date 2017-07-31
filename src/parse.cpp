@@ -83,6 +83,20 @@ std::optional<std::string> get_string(std::ifstream &file) {
     char c;
 
     while (file.get(c) and c != '"') {
+        if (c == '\\') {
+            if (file.get(c)) {
+                switch (c) {
+                    case 'a': c = '\a'; break;
+                    case 'b': c = '\b'; break;
+                    case 'e': c = '\x1b'; break;
+                    case 'f': c = '\f'; break;
+                    case 'n': c = '\n'; break;
+                    case 'r': c = '\r'; break;
+                    case 't': c = '\t'; break;
+                    case 'v': c = '\v'; break;
+                }
+            }
+        }
         str += c;
     }
 
