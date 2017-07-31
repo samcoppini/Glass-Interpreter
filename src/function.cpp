@@ -1,0 +1,229 @@
+#include "class.hpp"
+#include "function.hpp"
+#include "instance.hpp"
+#include "variable.hpp"
+
+#include <cctype>
+#include <iostream>
+
+Function::Function(CommandList &commands, std::shared_ptr<Instance> cur_obj):
+commands(commands), cur_obj(cur_obj) {
+}
+
+// Executes a function, given references to the classes, stack and global
+// variables. Returns whether there was an error of some sort
+bool Function::execute(std::map<std::string, Class> &classes,
+                       std::vector<Variable> &stack,
+                       std::map<std::string, Variable> &globals)
+{
+    std::map<std::string, Variable> locals;
+
+    // Gets the value of a name from the proper context
+    auto get_val = [&] (const std::string &name) -> Variable & {
+        if (name[0] == '_') {
+            return locals.at(name);
+        } else if (std::islower(name[0])) {
+            return cur_obj->vars.at(name);
+        } else {
+            return globals.at(name);
+        }
+    };
+
+    // Sets the value of a name in the proper context
+    auto set_val = [&] (const std::string &name, Variable var) {
+        if (name[0] == '_') {
+            locals.insert_or_assign(name, var);
+        } else if (std::islower(name[0])) {
+            cur_obj->vars.insert_or_assign(name, var);
+        } else {
+            globals.insert_or_assign(name, var);
+        }
+    };
+
+    // Pops the stack, returning the value of the former top, unless the stack
+    // was empty, in which case it returns std::nullopt
+    auto pop_stack = [&] () -> std::optional<Variable> {
+        if (stack.size() == 0) {
+            return std::nullopt;
+        } else {
+            auto back_val = stack.back();
+            stack.pop_back();
+            return back_val;
+        }
+    };
+
+    for (auto &command: commands) {
+        switch (command.type) {
+            case CommandType::AssignClass: {
+                auto cname = pop_stack();
+                auto name = pop_stack();
+                if (not name) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return true;
+                }
+                auto name_str = name->get_name();
+                auto cname_str = cname->get_name();
+                if (not name_str) {
+                    std::cerr << "Error! Cannot assign to non-name!\n";
+                    return true;
+                } else if (not cname_str) {
+                    std::cerr << "Error! Cannot create instance of non-name!\n";
+                    return true;
+                }
+                if (not classes.count(*cname_str)) {
+                    std::cerr << "Error! Cannot instantiate non-class \""
+                              << *cname_str << "\"!\n";
+                    return true;
+                }
+                set_val(*name_str, std::make_shared<Instance>(classes.at(*cname_str)));
+                break;
+            }
+
+            case CommandType::AssignSelf: {
+                auto name = pop_stack();
+                if (not name) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return true;
+                }
+                auto name_str = name->get_name();
+                if (not name_str) {
+                    std::cerr << "Error! Cannot assign to non-name!\n";
+                    return true;
+                } else {
+                    set_val(*name_str, {cur_obj});
+                }
+                break;
+            }
+
+            case CommandType::AssignValue: {
+                auto val = pop_stack();
+                auto name = pop_stack();
+                if (not name) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return true;
+                }
+                auto name_str = name->get_name();
+                if (not name_str) {
+                    std::cerr << "Error! Attempted to assign to non-name!\n";
+                    return true;
+                } else {
+                    set_val(*name_str, *val);
+                }
+                break;
+            }
+
+            case CommandType::DupElement: {
+                int index = stack.size() - static_cast<int>(std::get<double>(command.data)) - 1;
+                if (index < 0) {
+                    std::cerr << "Error! Attempted to duplicate out-of-range stack value!\n";
+                    return true;
+                }
+                stack.push_back(stack[index]);
+                break;
+            }
+
+            case CommandType::ExecuteFunc: {
+                auto func = pop_stack();
+                if (not func) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return true;
+                }
+                auto to_run = func->get_function();
+                if (not to_run) {
+                    std::cerr << "Error! Attempted to execute a non-function!\n";
+                    return true;
+                }
+                if (to_run->execute(classes, stack, globals)) {
+                    return true;
+                }
+                break;
+            }
+
+            case CommandType::GetFunction: {
+                auto fname = pop_stack();
+                auto oname = pop_stack();
+                if (not oname) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return false;
+                }
+                auto fname_str = fname->get_name();
+                auto oname_str = oname->get_name();
+                if (not fname_str or not oname_str) {
+                    std::cerr << "Error! Attempted to retrieve value of a non-name!\n";
+                    return true;
+                }
+                auto obj_var = get_val(*oname_str);
+                auto object = obj_var.get_instance();
+                if (not object) {
+                    std::cerr << "Error! Cannot retrieve function from non-instance!\n";
+                    return true;
+                }
+                auto class_funcs = (*object)->type.functions;
+                if (not class_funcs.count(*fname_str)) {
+                    std::cerr << "Error! \"" << *oname_str << "\" has no function \""
+                              << *fname_str << "\"!\n";
+                    return true;
+                }
+                stack.emplace_back(Function{class_funcs[*fname_str], *object});
+                break;
+            }
+
+            case CommandType::GetValue: {
+                auto name = pop_stack();
+                if (not name) {
+                    std::cerr << "Error! Attempted to pop empty stack!\n";
+                    return true;
+                }
+                auto name_str = name->get_name();
+                if (not name) {
+                    std::cerr << "Error! Cannot retrieve value of non-name!\n";
+                    return true;
+                }
+                stack.push_back(get_val(*name_str));
+                break;
+            }
+
+            case CommandType::PopStack:
+                pop_stack();
+                break;
+
+            case CommandType::PushName:
+                stack.emplace_back(VarType::Name, std::get<std::string>(command.data));
+                break;
+
+            case CommandType::PushNumber:
+                stack.emplace_back(std::get<double>(command.data));
+                break;
+
+            case CommandType::PushString:
+                stack.emplace_back(VarType::String, std::get<std::string>(command.data));
+                break;
+
+            case CommandType::Return:
+                return false;
+
+            case CommandType::WhileLoop: {
+                auto name = std::get<std::string>(command.data);
+                auto var = get_val(name);
+                Function loop{command.loop_body, cur_obj};
+                while (var) {
+                    if (loop.execute(classes, stack, globals)) {
+                        return true;
+                    }
+                    var = get_val(name);
+                }
+                break;
+            }
+        }
+
+        // Prints out the current stack
+        // (Because the built-in output classes aren't implemented yet)
+        std::cout << "Current stack:\n";
+        for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+            std::cout << "  " << static_cast<std::string>(*it) << "\n";
+        }
+        std::cout << "\n";
+    }
+    
+    return false;
+}

@@ -1,4 +1,6 @@
+#include "instance.hpp"
 #include "parse.hpp"
+#include "variable.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -38,7 +40,15 @@ int main(int argc, char *argv[]) {
         return 1;
     } else if (format_code) {
         print_classes(*classes);
+    } else {
+        std::vector<Variable> stack;
+        std::map<std::string, Variable> globals;
+        auto main_obj = std::make_shared<Instance>(classes->at("M"));
+        auto main_func = main_obj->get_func("m");
+        if (main_func.execute(*classes, stack, globals)) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
-
-    return 0;
 }
