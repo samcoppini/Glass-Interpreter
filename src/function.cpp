@@ -14,7 +14,8 @@ commands(commands), cur_obj(cur_obj) {
 // variables. Returns whether there was an error of some sort
 bool Function::execute(std::map<std::string, Class> &classes,
                        std::vector<Variable> &stack,
-                       std::map<std::string, Variable> &globals)
+                       std::map<std::string, Variable> &globals,
+                       bool debug_mode)
 {
     std::map<std::string, Variable> locals;
 
@@ -133,7 +134,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     std::cerr << "Error! Attempted to execute a non-function!\n";
                     return true;
                 }
-                if (to_run->execute(classes, stack, globals)) {
+                if (to_run->execute(classes, stack, globals, debug_mode)) {
                     return true;
                 }
                 break;
@@ -207,7 +208,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 auto var = get_val(name);
                 Function loop{command.loop_body, cur_obj};
                 while (var) {
-                    if (loop.execute(classes, stack, globals)) {
+                    if (loop.execute(classes, stack, globals, debug_mode)) {
                         return true;
                     }
                     var = get_val(name);
@@ -216,14 +217,15 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
         }
 
-        // Prints out the current stack
-        // (Because the built-in output classes aren't implemented yet)
-        std::cout << "Current stack:\n";
-        for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-            std::cout << "  " << static_cast<std::string>(*it) << "\n";
+        // Prints out the current stack if debug mode is on
+        if (debug_mode) {
+            std::cout << "Current stack:\n";
+            for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+                std::cout << "  " << static_cast<std::string>(*it) << "\n";
+            }
+            std::cout << "\n";
         }
-        std::cout << "\n";
     }
-    
+
     return false;
 }

@@ -8,11 +8,14 @@
 int main(int argc, char *argv[]) {
     std::string filename;
     bool format_code = false;
+    bool debug_mode = false;
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
         if (arg == "-f" or arg == "--format") {
             format_code = true;
+        } else if (arg == "-d" or arg == "--debug") {
+            debug_mode = true;
         } else {
             filename = arg;
         }
@@ -45,7 +48,7 @@ int main(int argc, char *argv[]) {
         std::map<std::string, Variable> globals;
         auto main_obj = std::make_shared<Instance>(classes->at("M"));
         auto main_func = main_obj->get_func("m");
-        if (main_func.execute(*classes, stack, globals)) {
+        if (main_func.execute(*classes, stack, globals, debug_mode)) {
             return 1;
         } else {
             return 0;
