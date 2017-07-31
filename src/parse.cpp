@@ -213,6 +213,10 @@ std::optional<std::pair<std::string, CommandList>> get_func(std::ifstream &file)
     auto func_name = get_name(file);
     if (not func_name) {
         return std::nullopt;
+    } else if (not std::islower(func_name->front())) {
+        std::cerr << "Error! Function name \"" << *func_name
+                  << "\" must start with a lowercase letter!\n";
+        return std::nullopt;
     }
 
     auto func_cmds = get_commands(file, ']');
@@ -228,6 +232,10 @@ std::optional<std::pair<std::string, CommandList>> get_func(std::ifstream &file)
 std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
     auto class_name = get_name(file);
     if (not class_name) {
+        return std::nullopt;
+    } else if (not std::isupper(class_name->front())) {
+        std::cerr << "Error! Class name \"" << *class_name
+                  << "\" must start with a capital letter!\n";
         return std::nullopt;
     }
 
