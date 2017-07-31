@@ -7,6 +7,11 @@
 #include <optional>
 
 std::map<std::string, Class> get_builtins() {
+    Class input;
+    input.functions["l"] = {Builtin::InputLine};
+    input.functions["c"] = {Builtin::InputChar};
+    input.functions["e"] = {Builtin::InputEof};
+
     Class output;
     output.functions["o"] = {Builtin::OutputStr};
     output.functions["on"] = {Builtin::OutputNumber};
@@ -25,12 +30,29 @@ std::map<std::string, Class> get_builtins() {
     vars.functions["n"] = {Builtin::VarNew};
     vars.functions["d"] = {Builtin::VarDelete};
 
-    return {{"O", output}, {"S", string}, {"V", vars}};
+    return {{"I", input}, {"O", output}, {"S", string}, {"V", vars}};
 }
 
 // Handles a builtin function, returning true if there was an error
 bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
     switch (type) {
+        case Builtin::InputLine: {
+            std::string str;
+            std::getline(std::cin, str);
+            stack.emplace_back(VarType::String, str);
+            break;
+        }
+
+        case Builtin::InputChar: {
+            auto c = std::cin.get();
+            stack.emplace_back(VarType::String, std::string{(char)c});
+            break;
+        }
+
+        case Builtin::InputEof:
+            stack.emplace_back(std::cin.eof() ? 1.0: 0.0);
+            break;
+
         case Builtin::OutputStr: {
             auto top = pop_stack(stack);
             if (not top) {

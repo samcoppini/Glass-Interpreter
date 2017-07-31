@@ -9,6 +9,9 @@
 class Variable;
 
 enum class Builtin: int {
+    InputLine,
+    InputChar,
+    InputEof,
     OutputStr,
     OutputNumber,
     StrLength,
