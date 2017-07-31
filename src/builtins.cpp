@@ -3,6 +3,7 @@
 #include "variable.hpp"
 
 #include <cctype>
+#include <cmath>
 #include <iostream>
 #include <optional>
 
@@ -15,6 +16,20 @@ std::map<std::string, Class> get_builtins() {
     Class output;
     output.functions["o"] = {Builtin::OutputStr};
     output.functions["on"] = {Builtin::OutputNumber};
+
+    Class math;
+    math.functions["a"] = {Builtin::MathAdd};
+    math.functions["s"] = {Builtin::MathSub};
+    math.functions["m"] = {Builtin::MathMult};
+    math.functions["d"] = {Builtin::MathDiv};
+    math.functions["mod"] = {Builtin::MathMod};
+    math.functions["f"] = {Builtin::MathFloor};
+    math.functions["e"] = {Builtin::MathEqual};
+    math.functions["ne"] = {Builtin::MathNotEqual};
+    math.functions["lt"] = {Builtin::MathLessThan};
+    math.functions["le"] = {Builtin::MathLessOrEqual};
+    math.functions["gt"] = {Builtin::MathGreaterThan};
+    math.functions["ge"] = {Builtin::MathGreaterOrEqual};
 
     Class string;
     string.functions["l"] = {Builtin::StrLength};
@@ -30,7 +45,7 @@ std::map<std::string, Class> get_builtins() {
     vars.functions["n"] = {Builtin::VarNew};
     vars.functions["d"] = {Builtin::VarDelete};
 
-    return {{"I", input}, {"O", output}, {"S", string}, {"V", vars}};
+    return {{"A", math}, {"I", input}, {"O", output}, {"S", string}, {"V", vars}};
 }
 
 // Handles a builtin function, returning true if there was an error
@@ -52,6 +67,174 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
         case Builtin::InputEof:
             stack.emplace_back(std::cin.eof() ? 1.0: 0.0);
             break;
+
+        case Builtin::MathAdd: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't add non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 + *num2);
+            break;
+        }
+
+        case Builtin::MathSub: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't subtract non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num2 - *num1);
+            break;
+        }
+
+        case Builtin::MathMult: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't multiply non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 * *num2);
+            break;
+        }
+
+        case Builtin::MathDiv: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't divide non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num2 / *num1);
+            break;
+        }
+
+        case Builtin::MathMod: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't perform modulo on non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(std::fmod(*num2, *num1));
+            break;
+        }
+
+        case Builtin::MathFloor:  {
+            auto top = pop_stack(stack);
+            if (not top) {
+                return true;
+            }
+            auto num = top->get_number();
+            if (not num) {
+                std::cerr << "Error! Can't floor non-number!\n";
+                return true;
+            }
+            stack.emplace_back(std::floor(*num));
+            break;
+        }
+
+        case Builtin::MathEqual: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't check equality of non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 == *num2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::MathNotEqual:  {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't check nonequality of non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 != *num2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::MathLessThan: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't compare non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 >= *num2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::MathLessOrEqual: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't compare non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 > *num2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::MathGreaterThan: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't compare non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 <= *num2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::MathGreaterOrEqual: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num1 = stack1->get_number(), num2 = stack2->get_number();
+            if (not num1 or not num2) {
+                std::cerr << "Error! Can't compare non-numbers!\n";
+                return true;
+            }
+            stack.emplace_back(*num1 < *num2 ? 1.0: 0.0);
+            break;
+        }
 
         case Builtin::OutputStr: {
             auto top = pop_stack(stack);
