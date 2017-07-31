@@ -42,7 +42,8 @@ bool Function::execute(std::map<std::string, Class> &classes,
         }
     };
 
-    for (auto &command: commands) {
+    for (unsigned i = 0; i < commands.size(); i++) {
+        const auto &command = commands[i];
         switch (command.type) {
             case CommandType::AssignClass: {
                 auto cname = pop_stack(stack);
@@ -167,6 +168,16 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 break;
             }
 
+            case CommandType::LoopBegin:
+                if (not get_val(std::get<std::string>(command.data))) {
+                    i = command.jump_loc;
+                }
+                break;
+
+            case CommandType::LoopEnd:
+                i = command.jump_loc - 1;
+                break;
+
             case CommandType::PopStack:
                 pop_stack(stack);
                 break;
@@ -185,19 +196,6 @@ bool Function::execute(std::map<std::string, Class> &classes,
 
             case CommandType::Return:
                 return false;
-
-            case CommandType::WhileLoop: {
-                auto name = std::get<std::string>(command.data);
-                auto var = get_val(name);
-                Function loop{command.loop_body, cur_obj};
-                while (var) {
-                    if (loop.execute(classes, stack, globals, debug_mode)) {
-                        return true;
-                    }
-                    var = get_val(name);
-                }
-                break;
-            }
 
             case CommandType::BuiltinFunction:
                 if (handle_builtin(std::get<Builtin>(command.data), stack)) {

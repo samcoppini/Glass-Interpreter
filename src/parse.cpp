@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cmath>
 #include <iostream>
+#include <stack>
 
 // Tries to get a number from the file that is ended by end_char, and returns
 // the number as a double, or returns nullopt if there's a parsing error
@@ -111,6 +112,7 @@ std::optional<std::string> get_string(std::ifstream &file) {
 // Returns a list of commands from the file, ended by a given character, or
 // returns nullopt if there's some sort of parsing error
 std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
+    std::stack<int> loop_stack;
     CommandList commands;
     char c;
 
@@ -162,11 +164,20 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
                 if (not name) {
                     return std::nullopt;
                 }
-                auto loop_body = get_commands(file, '\\');
-                if (not loop_body) {
+                loop_stack.push(commands.size());
+                commands.emplace_back(CommandType::LoopBegin, *name, 0);
+                break;
+            }
+
+            case '\\': {
+                if (loop_stack.size() == 0) {
+                    std::cerr << "Error! Unexpected \"\\\" encountered outside"
+                              << " of a loop!\n";
                     return std::nullopt;
                 }
-                commands.emplace_back(CommandType::WhileLoop, *name, *loop_body);
+                commands[loop_stack.top()].jump_loc = commands.size();
+                commands.emplace_back(CommandType::LoopEnd, "", loop_stack.top());
+                loop_stack.pop();
                 break;
             }
 
@@ -216,6 +227,11 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
 
     if (c != end_char) {
         std::cerr << "Error! End of file encountered when parsing function!\n";
+        return std::nullopt;
+    }
+
+    if (loop_stack.size() > 0) {
+        std::cerr << "Error! Loop not closed before end of function!\n";
         return std::nullopt;
     }
 
@@ -319,130 +335,4 @@ std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file) {
     }
 
     return classes;
-}
-
-// Prints out a formatted version of the list of commands, starting at a
-// certain level of indentation
-void print_commands(const CommandList &commands, int tab_level) {
-    if (commands.size() == 0) {
-        return;
-    }
-
-    std::cout << "\n";
-    for (int i = 0; i < tab_level; i++) {
-        std::cout << "  ";
-    }
-
-    for (const auto &command: commands) {
-        switch (command.type) {
-            case CommandType::AssignClass:
-                std::cout << "!";
-                break;
-            case CommandType::AssignSelf:
-                std::cout << "$";
-                break;
-            case CommandType::AssignValue:
-                std::cout << "=";
-                break;
-            case CommandType::DupElement: {
-                auto dval = std::get<double>(command.data);
-                if (std::round(dval) == dval and dval >= 0 and dval < 10) {
-                    std::cout << dval;
-                } else {
-                    std::cout << "(" << dval << ")";
-                }
-                break;
-            }
-            case CommandType::ExecuteFunc:
-                std::cout << "?";
-                break;
-            case CommandType::GetFunction:
-                std::cout << ".";
-                break;
-            case CommandType::GetValue:
-                std::cout << "*";
-                break;
-            case CommandType::PopStack:
-                std::cout << ",";
-                break;
-            case CommandType::PushName: {
-                auto str = std::get<std::string>(command.data);
-                if (str.size() == 1) {
-                    std::cout << str;
-                } else {
-                    std::cout << "(" << str << ")";
-                }
-                break;
-            }
-            case CommandType::PushNumber:
-                std::cout << "<" << std::get<double>(command.data) << ">";
-                break;
-            case CommandType::PushString:
-                std::cout << "\"" << std::get<std::string>(command.data) << "\"";
-                break;
-            case CommandType::Return:
-                std::cout << "^";
-                break;
-            case CommandType::WhileLoop: {
-                auto str = std::get<std::string>(command.data);
-                std::cout << "\n";
-                for (int i = 0; i < tab_level; i++) {
-                    std::cout << "  ";
-                }
-                std::cout << "/";
-                if (str.size() == 1) {
-                    std::cout << str;
-                } else {
-                    std::cout << "(" << str << ")";
-                }
-                print_commands(command.loop_body, tab_level + 1);
-                if (command.loop_body.size() > 0) {
-                    for (int i = 0; i < tab_level; i++) {
-                        std::cout << "  ";
-                    }
-                }
-                std::cout << "\\";
-                break;
-            }
-
-            case CommandType::BuiltinFunction:
-                break;
-        }
-    }
-    std::cout << "\n";
-}
-
-// Prints out a formatted version of the given classes
-void print_classes(const std::map<std::string, Class> &classes) {
-    for (const auto &class_pair: classes) {
-        auto name = class_pair.first;
-        if (name == "A" or name == "S" or name == "V" or name == "O" or name == "I") {
-            continue;
-        }
-        std::cout << "{";
-        if (class_pair.first.size() == 1) {
-            std::cout << class_pair.first;
-        } else {
-            std::cout << "(" << class_pair.first << ")";
-        }
-        if (class_pair.second.functions.size() == 0) {
-            std::cout << "}\n";
-            continue;
-        }
-        std::cout << "\n";
-        for (const auto &func: class_pair.second.functions) {
-            std::cout << "  [";
-            if (func.first.size() == 1) {
-                std::cout << func.first;
-            } else {
-                std::cout << "(" << func.first << ")";
-            }
-            print_commands(func.second, 2);
-            if (func.second.size() > 0) {
-                std::cout << "  ";
-            }
-            std::cout << "]\n";
-        }
-        std::cout << "}\n";
-    }
 }

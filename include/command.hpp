@@ -15,12 +15,13 @@ enum class CommandType {
     ExecuteFunc,
     GetFunction,
     GetValue,
+    LoopBegin,
+    LoopEnd,
     PopStack,
     PushName,
     PushNumber,
     PushString,
     Return,
-    WhileLoop,
     BuiltinFunction
 };
 
@@ -28,13 +29,13 @@ class Command {
     public:
         CommandType type;
         std::variant<std::string, double, Builtin> data;
-        std::vector<Command> loop_body;
+        unsigned jump_loc;
 
         Command(CommandType type);
         Command(Builtin builtin_type);
         Command(CommandType type, double dval);
         Command(CommandType type, const std::string &sval);
-        Command(CommandType type, const std::string &sval, const std::vector<Command> &body);
+        Command(CommandType type, const std::string &sval, unsigned jump);
 };
 
 using CommandList = std::vector<Command>;

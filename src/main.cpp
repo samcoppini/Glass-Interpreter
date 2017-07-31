@@ -7,14 +7,11 @@
 
 int main(int argc, char *argv[]) {
     std::string filename;
-    bool format_code = false;
     bool debug_mode = false;
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
-        if (arg == "-f" or arg == "--format") {
-            format_code = true;
-        } else if (arg == "-d" or arg == "--debug") {
+        if (arg == "-d" or arg == "--debug") {
             debug_mode = true;
         } else {
             filename = arg;
@@ -41,8 +38,6 @@ int main(int argc, char *argv[]) {
     } else if (not classes->at("M").functions.count("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
-    } else if (format_code) {
-        print_classes(*classes);
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;
