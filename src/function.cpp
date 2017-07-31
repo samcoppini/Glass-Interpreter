@@ -42,25 +42,12 @@ bool Function::execute(std::map<std::string, Class> &classes,
         }
     };
 
-    // Pops the stack, returning the value of the former top, unless the stack
-    // was empty, in which case it returns std::nullopt
-    auto pop_stack = [&] () -> std::optional<Variable> {
-        if (stack.size() == 0) {
-            return std::nullopt;
-        } else {
-            auto back_val = stack.back();
-            stack.pop_back();
-            return back_val;
-        }
-    };
-
     for (auto &command: commands) {
         switch (command.type) {
             case CommandType::AssignClass: {
-                auto cname = pop_stack();
-                auto name = pop_stack();
+                auto cname = pop_stack(stack);
+                auto name = pop_stack(stack);
                 if (not name) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return true;
                 }
                 auto name_str = name->get_name();
@@ -82,9 +69,8 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::AssignSelf: {
-                auto name = pop_stack();
+                auto name = pop_stack(stack);
                 if (not name) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return true;
                 }
                 auto name_str = name->get_name();
@@ -98,10 +84,9 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::AssignValue: {
-                auto val = pop_stack();
-                auto name = pop_stack();
+                auto val = pop_stack(stack);
+                auto name = pop_stack(stack);
                 if (not name) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return true;
                 }
                 auto name_str = name->get_name();
@@ -125,9 +110,8 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::ExecuteFunc: {
-                auto func = pop_stack();
+                auto func = pop_stack(stack);
                 if (not func) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return true;
                 }
                 auto to_run = func->get_function();
@@ -142,10 +126,9 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::GetFunction: {
-                auto fname = pop_stack();
-                auto oname = pop_stack();
+                auto fname = pop_stack(stack);
+                auto oname = pop_stack(stack);
                 if (not oname) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return false;
                 }
                 auto fname_str = fname->get_name();
@@ -171,9 +154,8 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::GetValue: {
-                auto name = pop_stack();
+                auto name = pop_stack(stack);
                 if (not name) {
-                    std::cerr << "Error! Attempted to pop empty stack!\n";
                     return true;
                 }
                 auto name_str = name->get_name();
@@ -186,7 +168,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
             }
 
             case CommandType::PopStack:
-                pop_stack();
+                pop_stack(stack);
                 break;
 
             case CommandType::PushName:
@@ -235,4 +217,17 @@ bool Function::execute(std::map<std::string, Class> &classes,
     }
 
     return false;
+}
+
+// Pops the stack, returning the value of the former top, unless the stack
+// was empty, in which case it returns std::nullopt
+std::optional<Variable> pop_stack(std::vector<Variable> &stack) {
+    if (stack.size() == 0) {
+        std::cerr << "Error! Attempted to pop empty stack!\n";
+        return std::nullopt;
+    } else {
+        auto back_val = stack.back();
+        stack.pop_back();
+        return back_val;
+    }
 }

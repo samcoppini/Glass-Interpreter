@@ -10,7 +10,15 @@ class Variable;
 
 enum class Builtin: int {
     OutputStr,
-    OutputNumber
+    OutputNumber,
+    StrLength,
+    StrIndex,
+    StrReplace,
+    StrConcatenate,
+    StrSplit,
+    StrEqual,
+    StrNumtoChar,
+    StrChartoNum
 };
 
 std::map<std::string, Class> get_builtins();

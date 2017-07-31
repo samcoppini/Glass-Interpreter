@@ -5,6 +5,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,5 +25,7 @@ class Function {
                      std::map<std::string, Variable> &globals,
                      bool debug_mode);
 };
+
+std::optional<Variable> pop_stack(std::vector<Variable> &stack);
 
 #endif

@@ -10,25 +10,25 @@ std::map<std::string, Class> get_builtins() {
     output.functions["o"] = {Builtin::OutputStr};
     output.functions["on"] = {Builtin::OutputNumber};
 
-    return {{"O", output}};
+    Class string;
+    string.functions["l"] = {Builtin::StrLength};
+    string.functions["i"] = {Builtin::StrIndex};
+    string.functions["si"] = {Builtin::StrReplace};
+    string.functions["a"] = {Builtin::StrConcatenate};
+    string.functions["d"] = {Builtin::StrSplit};
+    string.functions["e"] = {Builtin::StrEqual};
+    string.functions["ns"] = {Builtin::StrNumtoChar};
+    string.functions["sn"] = {Builtin::StrChartoNum};
+
+    return {{"O", output}, {"S", string}};
 }
 
+// Handles a builtin function, returning true if there was an error
 bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
-    auto pop_stack = [&] () -> std::optional<Variable> {
-        if (stack.size() == 0) {
-            return std::nullopt;
-        } else {
-            auto back_val = stack.back();
-            stack.pop_back();
-            return back_val;
-        }
-    };
-
     switch (type) {
         case Builtin::OutputStr: {
-            auto top = pop_stack();
+            auto top = pop_stack(stack);
             if (not top) {
-                std::cerr << "Error! Attempted to pop empty stack!\n";
                 return true;
             }
             if (auto str = top->get_string()) {
@@ -43,9 +43,8 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
         }
 
         case Builtin::OutputNumber: {
-            auto top = pop_stack();
+            auto top = pop_stack(stack);
             if (not top) {
-                std::cerr << "Error! Attempted to pop empty stack!\n";
                 return true;
             }
             if (auto num = top->get_number()) {
@@ -54,6 +53,171 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                 std::cerr << "Error! Attempted to output non-number as number!\n";
                 return true;
             }
+            break;
+        }
+
+        case Builtin::StrLength: {
+            auto top = pop_stack(stack);
+            if (not top) {
+                return true;
+            }
+            if (auto str = top->get_string()) {
+                stack.emplace_back(static_cast<double>(str->size()));
+            } else {
+                std::cerr << "Error! Cannot get length of non-string!\n";
+                return true;
+            }
+            break;
+        }
+
+        case Builtin::StrIndex: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto num = stack1->get_number();
+            auto str = stack2->get_string();
+            if (not num) {
+                std::cerr << "Cannot get index of non-number!\n";
+                return true;
+            } else if (not str) {
+                std::cerr << "Cannot index a non-string!\n";
+                return true;
+            }
+            auto index = static_cast<int>(*num);
+            if (index < 0 or (unsigned) index >= str->size()) {
+                stack.emplace_back(VarType::String, "");
+            } else {
+                stack.emplace_back(VarType::String, std::string{(*str)[index]});
+            }
+            break;
+        }
+
+        case Builtin::StrReplace: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack),
+                 stack3 = pop_stack(stack);
+            if (not stack3) {
+                return true;
+            }
+            auto string = stack3->get_string(), chr = stack1->get_string();
+            auto num = stack2->get_number();
+            if (not string) {
+                std::cerr << "Error! Cannot replace character in non-string!\n";
+                return true;
+            } else if (not num) {
+                std::cerr << "Error! Cannot use non-number as an index!\n";
+                return true;
+            } else if (not chr) {
+                std::cerr << "Error! Cannot replace character with non-string!\n";
+                return true;
+            } else if (chr->size() < 1) {
+                std::cerr << "Error! Need non-empty string to replace character!\n";
+                return true;
+            } else if (chr->size() > 1) {
+                std::cerr << "Error! Cannot replace character with multi-character string!\n";
+                return true;
+            }
+            auto index = static_cast<int>(*num);
+            if (index < 0 or (unsigned) index >= string->size()) {
+                std::cerr << "Error! Index into string is out of range!\n";
+                return true;
+            } else {
+                auto new_string = *string;
+                new_string[index] = (*chr)[0];
+                stack.emplace_back(VarType::String, new_string);
+            }
+            break;
+        }
+
+        case Builtin::StrConcatenate: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto str1 = stack1->get_string(), str2 = stack2->get_string();
+            if (not str1 or not str2) {
+                std::cerr << "Error! Cannot concatenate non-string!\n";
+                return true;
+            }
+            stack.emplace_back(VarType::String, *str2 + *str1);
+            break;
+        }
+
+        case Builtin::StrSplit: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto string = stack2->get_string();
+            auto pos = stack1->get_number();
+            if (not string) {
+                std::cerr << "Error! Cannot split non-string!\n";
+                return true;
+            } else if (not pos) {
+                std::cerr << "Error! Cannot use non-number as index to split string!\n";
+                return true;
+            }
+            auto index = static_cast<int>(*pos);
+            if (index <= 0) {
+                stack.emplace_back(VarType::String, "");
+                stack.emplace_back(VarType::String, *string);
+            } else if ((unsigned) index >= string->size()) {
+                stack.emplace_back(VarType::String, *string);
+                stack.emplace_back(VarType::String, "");
+            } else {
+                auto split1 = string->substr(0, index);
+                auto split2 = string->substr(index);
+                stack.emplace_back(VarType::String, split1);
+                stack.emplace_back(VarType::String, split2);
+            }
+            break;
+        }
+
+        case Builtin::StrEqual: {
+            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
+            if (not stack2) {
+                return true;
+            }
+            auto str1 = stack1->get_string(), str2 = stack2->get_string();
+            if (not str1 or not str2) {
+                std::cerr << "Error! Cannot check equality of non-strings!\n";
+                return true;
+            }
+            stack.emplace_back(*str1 == *str2 ? 1.0: 0.0);
+            break;
+        }
+
+        case Builtin::StrNumtoChar: {
+            auto top = pop_stack(stack);
+            if (not top) {
+                return true;
+            }
+            auto num = top->get_number();
+            if (not num) {
+                std::cerr << "Error! Cannot convert non-number from number to character!\n";
+                return true;
+            }
+            stack.emplace_back(VarType::String, std::string{(char) *num});
+            break;
+        }
+
+        case Builtin::StrChartoNum: {
+            auto top = pop_stack(stack);
+            if (not top) {
+                return true;
+            }
+            auto chr = top->get_string();
+            if (not chr) {
+                std::cerr << "Error! Cannot convert non-string from character to number!\n";
+                return true;
+            } else if (chr->size() == 0) {
+                std::cerr << "Error! Cannot convert empty string to number!\n";
+                return true;
+            } else if (chr->size() > 1) {
+                std::cerr << "Error! Cannot convert multi-character string to number!\n";
+                return true;
+            }
+            stack.emplace_back(static_cast<double>(chr->front()));
             break;
         }
     }
