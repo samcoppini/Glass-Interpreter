@@ -64,7 +64,7 @@ Variable::operator bool() const {
     } else if (type == VarType::String) {
         return std::get<std::string>(data) != "";
     } else {
-        return true;
+        return false;
     }
 }
 
