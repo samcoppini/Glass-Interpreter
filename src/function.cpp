@@ -137,7 +137,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 auto fname = pop_stack(stack);
                 auto oname = pop_stack(stack);
                 if (not oname) {
-                    return false;
+                    return true;
                 }
                 auto fname_str = fname->get_name();
                 auto oname_str = oname->get_name();
@@ -186,7 +186,9 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 break;
 
             case CommandType::PopStack:
-                pop_stack(stack);
+                if (not pop_stack(stack)) {
+                    return true;
+                }
                 break;
 
             case CommandType::PushName:
