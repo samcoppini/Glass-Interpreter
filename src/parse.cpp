@@ -56,20 +56,16 @@ std::optional<double> get_number(std::ifstream &file, char end_char) {
 
 // Tries to get a name from the file, returning it as a string if there is
 // one, or nullopt if there's some sort of parsing error
-std::optional<std::string> get_name(std::ifstream &file) {
+// paren_started indicates whether an opening parenthesis preceded the
+// current location in the file
+std::optional<std::string> get_name(std::ifstream &file, bool paren_started) {
     std::string name;
     char c;
 
-    if (not file.get(c)) {
+    if (not paren_started and not file.get(c)) {
         std::cerr << "Error! End of file encountered while reading name!\n";
         return std::nullopt;
-    } else if (c == '\'') {
-        if (get_comment(file)) {
-            return std::nullopt;
-        } else {
-            return get_name(file);
-        }
-    } else if (c == '(') {
+    } else if (paren_started or c == '(') {
         while (file.get(c) and c != ')') {
             if (std::isalnum(c) or c == '_') {
                 if (name.size() == 0 and std::isdigit(c)) {
@@ -92,6 +88,12 @@ std::optional<std::string> get_name(std::ifstream &file) {
             std::cerr << "Error! End of file encountered while reading name!\n";
             return std::nullopt;
         }
+    } else if (c == '\'') {
+       if (get_comment(file)) {
+           return std::nullopt;
+       } else {
+           return get_name(file);
+       }
     } else if (std::isalpha(c)) {
         name = c;
     } else {
@@ -229,8 +231,7 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
                     commands.emplace_back(CommandType::DupElement, *num);
                 } else {
                     file.unget();
-                    file.unget();
-                    auto name = get_name(file);
+                    auto name = get_name(file, true);
                     if (not name) {
                         return std::nullopt;
                     }
