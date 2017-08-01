@@ -6,6 +6,20 @@
 #include <iostream>
 #include <stack>
 
+// Reads a comment, and returns whether the file ended before the comment did
+bool get_comment(std::ifstream &file) {
+    char c;
+
+    while (file.get(c)) {
+        if (c == '\'') {
+            return false;
+        }
+    }
+
+    std::cerr << "Error! Unexpected end of file encountered when reading comment!\n";
+    return true;
+}
+
 // Tries to get a number from the file that is ended by end_char, and returns
 // the number as a double, or returns nullopt if there's a parsing error
 std::optional<double> get_number(std::ifstream &file, char end_char) {
@@ -13,7 +27,13 @@ std::optional<double> get_number(std::ifstream &file, char end_char) {
     char c;
 
     while (file.get(c) and c != end_char) {
-        str += c;
+        if (c == '\'') {
+            if (get_comment(file)) {
+                return std::nullopt;
+            }
+        } else {
+            str += c;
+        }
     }
 
     if (c != end_char) {
@@ -43,6 +63,12 @@ std::optional<std::string> get_name(std::ifstream &file) {
     if (not file.get(c)) {
         std::cerr << "Error! End of file encountered while reading name!\n";
         return std::nullopt;
+    } else if (c == '\'') {
+        if (get_comment(file)) {
+            return std::nullopt;
+        } else {
+            return get_name(file);
+        }
     } else if (c == '(') {
         while (file.get(c) and c != ')') {
             if (std::isalnum(c) or c == '_') {
@@ -52,6 +78,10 @@ std::optional<std::string> get_name(std::ifstream &file) {
                     return std::nullopt;
                 }
                 name += c;
+            } else if (c == '\'') {
+                if (get_comment(file)) {
+                    return std::nullopt;
+                }
             } else {
                 std::cerr << "Error! Unexpected \"" << c
                           << "\" encountered when parsing name!\n";
@@ -118,6 +148,12 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
 
     while (file.get(c) and c != end_char) {
         switch (c) {
+            case '\'':
+                if (get_comment(file)) {
+                    return std::nullopt;
+                }
+                break;
+
             case ',':
                 commands.emplace_back(CommandType::PopStack);
                 break;
@@ -289,6 +325,10 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
                 return std::nullopt;
             }
             new_class.functions[func_name] = commands;
+        } else if (c == '\'') {
+            if (get_comment(file)) {
+                return std::nullopt;
+            }
         } else {
             std::cerr << "Error! Unexpected \"" << c
                       << "\" character encountered when parsing \""
@@ -327,6 +367,10 @@ std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file) {
                 return std::nullopt;
             }
             classes[class_name] = new_class;
+        } else if (c == '\'') {
+            if (get_comment(file)) {
+                return std::nullopt;
+            }
         } else {
             std::cerr << "Error! Was not expecting a \"" << c
                       << "\" character outside a class definition!\n";
