@@ -42,6 +42,12 @@ int main(int argc, char *argv[]) {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;
         auto main_obj = std::make_shared<Instance>(classes->at("M"));
+        if (classes->at("M").functions.count("c__")) {
+            auto ctor = main_obj->get_func("c__");
+            if (ctor.execute(*classes, stack, globals, debug_mode)) {
+                return 1;
+            }
+        }
         auto main_func = main_obj->get_func("m");
         if (main_func.execute(*classes, stack, globals, debug_mode)) {
             return 1;
