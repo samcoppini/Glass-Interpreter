@@ -66,6 +66,13 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     return true;
                 }
                 set_val(*name_str, std::make_shared<Instance>(classes.at(*cname_str)));
+                if (classes[*cname_str].functions.count("c__")) {
+                    auto ctor = classes[*cname_str].functions["c__"];
+                    Function func = {ctor, *get_val(*name_str).get_instance()};
+                    if (func.execute(classes, stack, globals, debug_mode)) {
+                        return true;
+                    }
+                }
                 break;
             }
 
