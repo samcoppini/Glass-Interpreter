@@ -20,18 +20,18 @@ bool Function::execute(std::map<std::string, Class> &classes,
     std::map<std::string, Variable> locals;
 
     // Gets the value of a name from the proper context
-    auto get_val = [&] (const std::string &name) -> Variable * {
+    auto get_val = [&] (const std::string &name) -> std::optional<Variable> {
         try {
             if (name[0] == '_') {
-                return &locals.at(name);
+                return locals.at(name);
             } else if (std::islower(name[0])) {
-                return &cur_obj->vars.at(name);
+                return cur_obj->vars.at(name);
             } else {
-                return &globals.at(name);
+                return globals.at(name);
             }
         } catch (const std::out_of_range &e) {
             std::cerr << "Error! \"" << name << "\" is not defined!\n";
-            return nullptr;
+            return std::nullopt;
         }
     };
 
