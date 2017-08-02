@@ -1,0 +1,267 @@
+'A brainfuck interpreter written in glass.
+ Give it a brainfuck program and its input separated with a semicolon.'
+
+'Class for a cell in the tape.
+ Since glass does not support arrays, the tape is implemented
+ as a doubly-linked list.'
+{(Cell)
+    [(c__)
+        'Sets up pointers to the cells to the left and right of
+         the current cell. The value 1 is considered a null pointer.'
+        (left)<1>=
+        (right)<1>=
+
+        'Sets up the value of the current cell'
+        (val)<0>=
+    ]
+
+    'Returns a pointer to the cell to the left of the current cell.
+     If it does not yet exist, this method creates it'
+    [(getLeft)
+        /(left)
+            'Creates the cell'
+            (left)(Cell)!
+
+            'Sets the right cell pointer on the new cell to the current cell'
+            (_t)$(_t)*(left)(setRight).?
+        \
+        (left)*
+    ]
+
+    'Returns a pointer to the cell to the right of the current cell.
+     If it does not yet exist, this method creates it'
+    [(getRight)
+        /(right)
+            'Creates the cell'
+            (right)(Cell)!
+
+            'Sets the right cell pointer on the new cell to the current cell'
+            (_t)$(_t)*(right)(setLeft).?
+        \
+        (right)*
+    ]
+
+    'Returns the value of the cell'
+    [(getVal)
+        (val)*
+    ]
+
+    'Sets the cell to the left of the current cell'
+    [(setLeft)
+        (left)1=,
+    ]
+
+    'Sets the cell to the right of the current cell'
+    [(setRight)
+        (right)1=,
+    ]
+
+    'Sets the value in this cell'
+    [(setVal)
+        (val)1=,
+    ]
+}
+
+'A class for containing and executing the code'
+{(Code)
+    [(c__)
+        'Sets up the builtin variables used by the class'
+        aA!iI!oO!sS!
+
+        'Reads all the input and saves it'
+        (code)""(_c)ic.?=(_open)ie.?<0>ae.?=
+        /(_open)
+            'Saves the previous character read in'
+            (_c)*sa.?
+
+            'Reads in another character, checks for EOF'
+            (_c)ic.?=(_open)ie.?<0>ae.?=
+
+            'If there was not EOF, checks to see if the last character was
+             a semicolon, and if so, exits the loop'
+            (_tmp)(_open)*=
+            /(_tmp)
+                (_open)(_c)*";"se.?<0>ae.?=
+                (_tmp)<0>=
+            \
+        \=
+
+        'Save the length of the code'
+        (codelen)(code)*sl.?=
+
+        'Sets the index of the currently executing command'
+        (curIndex)<0>=
+
+        'Sets up a pointer to this object'
+        (self)$
+
+        'Sets up the tape'
+        (curCell)(Cell)!
+    ]
+
+    'Executes the code.'
+    [(execute)
+        (_cmp)(curIndex)*(codelen)*a(lt).?=
+        /(_cmp)
+            (self)(executeInstruction).?
+            (curIndex)(curIndex)*<1>aa.?=
+            (_cmp)(curIndex)*(codelen)*a(lt).?=
+        \
+    ]
+
+    'Executes the current instruction'
+    [(executeInstruction)
+        (_cmd)(code)*(curIndex)*si.?=
+        (_cmp)(_cmd)*"+"se.?=
+        /(_cmp)
+            (self)(increment).?^
+        \
+        (_cmp)(_cmd)*"-"se.?=
+        /(_cmp)
+            (self)(decrement).?^
+        \
+        (_cmp)(_cmd)*">"se.?=
+        /(_cmp)
+            (self)(moveRight).?^
+        \
+        (_cmp)(_cmd)*"<"se.?=
+        /(_cmp)
+            (self)(moveLeft).?^
+        \
+        (_cmp)(_cmd)*"["se.?=
+        /(_cmp)
+            (self)(loopBegin).?^
+        \
+        (_cmp)(_cmd)*"]"se.?=
+        /(_cmp)
+            (self)(loopEnd).?^
+        \
+        (_cmp)(_cmd)*"."se.?=
+        /(_cmp)
+            (self)(output).?^
+        \
+        (_cmp)(_cmd)*","se.?=
+        /(_cmp)
+            (self)(input).?^
+        \
+    ]
+
+    'Implements the + command'
+    [(increment)
+        (curCell)(getVal).?
+        <1>aa.?<256>a(mod).?
+        (curCell)(setVal).?
+    ]
+
+    'Implements the - command'
+    [(decrement)
+        (curCell)(getVal).?
+        <1>as.?(_cmp)1<-1>ae.?=
+        /(_cmp),<255>(_cmp)<0>=\
+        (curCell)(setVal).?
+    ]
+
+    'Implements the < command'
+    [(moveLeft)
+        (curCell)(getLeft).?
+        (curCell)1=,
+    ]
+
+    'Implements the > command'
+    [(moveRight)
+        (curCell)(getRight).?
+        (curCell)1=,
+    ]
+
+    'Implements the [ command'
+    [(loopBegin)
+        'Check to see whether the current cell is non-zero, and if so
+         returns from the function'
+        (_cmp)(curCell)(getVal).?=
+        /(_cmp)^\
+
+        'Move to the matching ] command'
+        (_depth)<1>=
+        /(_depth)
+            (curIndex)(curIndex)*<1>aa.?=
+
+            'Check to see if we have traveled beyond the end of the code, and
+             if so, we return out of this function'
+            (_cmp)(curIndex)*(codelen)*a(gt).?=/(_cmp)^\
+
+            'Get the current command we are looking at'
+            (_cmd)(code)*(curIndex)*si.?=
+
+            'If the command is a [, we increment the loop depth'
+            (_cmp)(_cmd)*"["se.?=
+            /(_cmp)
+                (_depth)(_depth)*<1>aa.?=
+                (_cmp)<0>=
+            \
+
+            'If the command is a ], we decrement the loop depth'
+            (_cmp)(_cmd)*"]"se.?=
+            /(_cmp)
+                (_depth)(_depth)*<1>as.?=
+                (_cmp)<0>=
+            \
+        \
+    ]
+
+    'Implements the ] command'
+    [(loopEnd)
+        'Check to see whether the current cell is zero, and if so
+         returns from the function'
+        (_cmp)(curCell)(getVal).?<0>ae.?=
+        /(_cmp)^\
+
+        'Move to the matching [ command'
+        (_depth)<1>=
+        /(_depth)
+            (curIndex)(curIndex)*<1>as.?=
+
+            'Check to see if we have traveled before the start of the code,
+            and if so, we return out of this function'
+            (_cmp)(curIndex)*<0>a(le).?=/(_cmp)^\
+
+            'Get the current command we are looking at'
+            (_cmd)(code)*(curIndex)*si.?=
+
+            'If the command is a [, we decrement the loop depth'
+            (_cmp)(_cmd)*"["se.?=
+            /(_cmp)
+                (_depth)(_depth)*<1>as.?=
+                (_cmp)<0>=
+            \
+
+            'If the command is a ], we increment the loop depth'
+            (_cmp)(_cmd)*"]"se.?=
+            /(_cmp)
+                (_depth)(_depth)*<1>aa.?=
+                (_cmp)<0>=
+            \
+        \
+    ]
+
+    'Implements the . command'
+    [(output)
+        (curCell)(getVal).?
+        s(ns).?oo.?
+    ]
+
+    'Implements the , command'
+    [(input)
+        ic.?(_eof)ie.?=
+        /(_eof)
+            <0>(curCell)(setVal).?,^
+        \
+        s(sn).?(curCell)(setVal).?
+    ]
+}
+
+{M
+    [m
+        (_code)(Code)!
+        (_code)(execute).?
+    ]
+}
