@@ -7,12 +7,13 @@
 
 int main(int argc, char *argv[]) {
     std::string filename;
-    bool debug_mode = false;
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
-        if (arg == "-d" or arg == "--debug") {
-            debug_mode = true;
+        if (arg[0] == '-') {
+            std::cerr << "Error! Invalid command-line argument \""
+                      << arg << "\"!\n";
+            return 1;
         } else {
             filename = arg;
         }
@@ -44,12 +45,12 @@ int main(int argc, char *argv[]) {
         auto main_obj = std::make_shared<Instance>(classes->at("M"));
         if (classes->at("M").functions.count("c__")) {
             auto ctor = main_obj->get_func("c__");
-            if (ctor.execute(*classes, stack, globals, debug_mode)) {
+            if (ctor.execute(*classes, stack, globals)) {
                 return 1;
             }
         }
         auto main_func = main_obj->get_func("m");
-        if (main_func.execute(*classes, stack, globals, debug_mode)) {
+        if (main_func.execute(*classes, stack, globals)) {
             return 1;
         } else {
             return 0;

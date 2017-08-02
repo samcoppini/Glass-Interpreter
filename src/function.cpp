@@ -15,8 +15,7 @@ commands(commands), cur_obj(cur_obj) {
 // variables. Returns whether there was an error of some sort
 bool Function::execute(std::map<std::string, Class> &classes,
                        std::vector<Variable> &stack,
-                       std::map<std::string, Variable> &globals,
-                       bool debug_mode)
+                       std::map<std::string, Variable> &globals)
 {
     std::map<std::string, Variable> locals;
 
@@ -74,7 +73,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 if (classes[*cname_str].functions.count("c__")) {
                     auto ctor = classes[*cname_str].functions["c__"];
                     Function func = {ctor, *get_val(*name_str)->get_instance()};
-                    if (func.execute(classes, stack, globals, debug_mode)) {
+                    if (func.execute(classes, stack, globals)) {
                         return true;
                     }
                 }
@@ -132,7 +131,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     std::cerr << "Error! Attempted to execute a non-function!\n";
                     return true;
                 }
-                if (to_run->execute(classes, stack, globals, debug_mode)) {
+                if (to_run->execute(classes, stack, globals)) {
                     return true;
                 }
                 break;
@@ -227,15 +226,6 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     return true;
                 }
                 break;
-        }
-
-        // Prints out the current stack if debug mode is on
-        if (debug_mode) {
-            std::cout << "Current stack:\n";
-            for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-                std::cout << "  " << static_cast<std::string>(*it) << "\n";
-            }
-            std::cout << "\n";
         }
     }
 

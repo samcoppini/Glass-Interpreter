@@ -22,8 +22,7 @@ class Function {
         Function(CommandList &commands, std::shared_ptr<Instance> cur_obj);
         bool execute(std::map<std::string, Class> &classes,
                      std::vector<Variable> &stack,
-                     std::map<std::string, Variable> &globals,
-                     bool debug_mode);
+                     std::map<std::string, Variable> &globals);
 };
 
 std::optional<Variable> pop_stack(std::vector<Variable> &stack);
