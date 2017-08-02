@@ -21,13 +21,18 @@ bool Function::execute(std::map<std::string, Class> &classes,
     std::map<std::string, Variable> locals;
 
     // Gets the value of a name from the proper context
-    auto get_val = [&] (const std::string &name) -> Variable & {
-        if (name[0] == '_') {
-            return locals.at(name);
-        } else if (std::islower(name[0])) {
-            return cur_obj->vars.at(name);
-        } else {
-            return globals.at(name);
+    auto get_val = [&] (const std::string &name) -> Variable * {
+        try {
+            if (name[0] == '_') {
+                return &locals.at(name);
+            } else if (std::islower(name[0])) {
+                return &cur_obj->vars.at(name);
+            } else {
+                return &globals.at(name);
+            }
+        } catch (const std::out_of_range &e) {
+            std::cerr << "Error! \"" << name << "\" is not defined!\n";
+            return nullptr;
         }
     };
 
@@ -68,7 +73,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 set_val(*name_str, std::make_shared<Instance>(classes.at(*cname_str)));
                 if (classes[*cname_str].functions.count("c__")) {
                     auto ctor = classes[*cname_str].functions["c__"];
-                    Function func = {ctor, *get_val(*name_str).get_instance()};
+                    Function func = {ctor, *get_val(*name_str)->get_instance()};
                     if (func.execute(classes, stack, globals, debug_mode)) {
                         return true;
                     }
@@ -146,7 +151,10 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     return true;
                 }
                 auto obj_var = get_val(*oname_str);
-                auto object = obj_var.get_instance();
+                if (not obj_var) {
+                    return true;
+                }
+                auto object = obj_var->get_instance();
                 if (not object) {
                     std::cerr << "Error! Cannot retrieve function from non-instance!\n";
                     return true;
@@ -171,15 +179,23 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     std::cerr << "Error! Cannot retrieve value of non-name!\n";
                     return true;
                 }
-                stack.push_back(get_val(*name_str));
+                auto val = get_val(*name_str);
+                if (not val) {
+                    return true;
+                }
+                stack.push_back(*val);
                 break;
             }
 
-            case CommandType::LoopBegin:
-                if (not get_val(std::get<std::string>(command.data))) {
+            case CommandType::LoopBegin: {
+                auto val = get_val(std::get<std::string>(command.data));
+                if (not val) {
+                    return true;
+                } else if (not *val) {
                     i = command.jump_loc;
                 }
                 break;
+            }
 
             case CommandType::LoopEnd:
                 i = command.jump_loc - 1;
