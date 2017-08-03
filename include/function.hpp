@@ -4,23 +4,25 @@
 #include "command.hpp"
 
 #include <map>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 class Class;
 class Instance;
+class InstanceManager;
 class Variable;
 
 class Function {
     protected:
         CommandList commands;
-        std::shared_ptr<Instance> cur_obj;
+        Instance *cur_obj;
 
     public:
-        Function(CommandList &commands, std::shared_ptr<Instance> cur_obj);
-        bool execute(std::map<std::string, Class> &classes,
+        Function(CommandList &commands, Instance *cur_obj);
+        Instance *get_obj() const;
+        bool execute(InstanceManager &manager,
+                     std::map<std::string, Class> &classes,
                      std::vector<Variable> &stack,
                      std::map<std::string, Variable> &globals);
 };

@@ -5,13 +5,12 @@
 #include "variable.hpp"
 
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
 class Class;
 
-class Instance: public std::enable_shared_from_this<Instance> {
+class Instance {
     public:
         Class &type;
         std::map<std::string, Variable> vars;

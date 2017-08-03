@@ -1,4 +1,5 @@
 #include "instance.hpp"
+#include "instanceManager.hpp"
 #include "parse.hpp"
 #include "variable.hpp"
 
@@ -42,15 +43,19 @@ int main(int argc, char *argv[]) {
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;
-        auto main_obj = std::make_shared<Instance>(classes->at("M"));
+        InstanceManager manager{stack, globals};
+
+        globals.emplace("_Main", manager.new_instance(classes->at("M")));
+        auto main_obj = *globals.at("_Main").get_instance();
+
         if (classes->at("M").functions.count("c__")) {
             auto ctor = main_obj->get_func("c__");
-            if (ctor.execute(*classes, stack, globals)) {
+            if (ctor.execute(manager, *classes, stack, globals)) {
                 return 1;
             }
         }
         auto main_func = main_obj->get_func("m");
-        if (main_func.execute(*classes, stack, globals)) {
+        if (main_func.execute(manager, *classes, stack, globals)) {
             return 1;
         } else {
             return 0;

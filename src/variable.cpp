@@ -6,7 +6,7 @@ Variable::Variable(double dval): type(VarType::Number), data(dval) {
 Variable::Variable(Function func): type(VarType::Function), data(func) {
 }
 
-Variable::Variable(std::shared_ptr<Instance> inst): type(VarType::Instance), data(inst) {
+Variable::Variable(Instance *inst): type(VarType::Instance), data(inst) {
 }
 
 Variable::Variable(VarType type, const std::string &sval): type(type), data(sval) {
@@ -50,9 +50,9 @@ std::optional<Function> Variable::get_function() const {
 }
 
 // Returns the instance if the variable holds an instance, otherwise return nullopt
-std::optional<std::shared_ptr<Instance>> Variable::get_instance() const {
+std::optional<Instance *> Variable::get_instance() const {
     if (type == VarType::Instance) {
-        return std::get<std::shared_ptr<Instance>>(data);
+        return std::get<Instance *>(data);
     } else {
         return std::nullopt;
     }

@@ -2,22 +2,29 @@
 #include "class.hpp"
 #include "function.hpp"
 #include "instance.hpp"
+#include "instanceManager.hpp"
 #include "variable.hpp"
 
 #include <cctype>
 #include <iostream>
 
-Function::Function(CommandList &commands, std::shared_ptr<Instance> cur_obj):
+Function::Function(CommandList &commands, Instance *cur_obj):
 commands(commands), cur_obj(cur_obj) {
+}
+
+Instance *Function::get_obj() const {
+    return cur_obj;
 }
 
 // Executes a function, given references to the classes, stack and global
 // variables. Returns whether there was an error of some sort
-bool Function::execute(std::map<std::string, Class> &classes,
+bool Function::execute(InstanceManager &manager,
+                       std::map<std::string, Class> &classes,
                        std::vector<Variable> &stack,
                        std::map<std::string, Variable> &globals)
 {
     std::map<std::string, Variable> locals;
+    manager.new_scope(cur_obj, &locals);
 
     // Gets the value of a name from the proper context
     auto get_val = [&] (const std::string &name) -> std::optional<Variable> {
@@ -69,11 +76,12 @@ bool Function::execute(std::map<std::string, Class> &classes,
                               << *cname_str << "\"!\n";
                     return true;
                 }
-                set_val(*name_str, std::make_shared<Instance>(classes.at(*cname_str)));
+                auto new_inst = manager.new_instance(classes.at(*cname_str));
+                set_val(*name_str, new_inst);
                 if (classes[*cname_str].functions.count("c__")) {
                     auto ctor = classes[*cname_str].functions["c__"];
                     Function func = {ctor, *get_val(*name_str)->get_instance()};
-                    if (func.execute(classes, stack, globals)) {
+                    if (func.execute(manager, classes, stack, globals)) {
                         return true;
                     }
                 }
@@ -131,7 +139,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                     std::cerr << "Error! Attempted to execute a non-function!\n";
                     return true;
                 }
-                if (to_run->execute(classes, stack, globals)) {
+                if (to_run->execute(manager, classes, stack, globals)) {
                     return true;
                 }
                 break;
@@ -219,6 +227,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
                 break;
 
             case CommandType::Return:
+                manager.unwind_scope();
                 return false;
 
             case CommandType::BuiltinFunction:
@@ -229,6 +238,7 @@ bool Function::execute(std::map<std::string, Class> &classes,
         }
     }
 
+    manager.unwind_scope();
     return false;
 }
 
