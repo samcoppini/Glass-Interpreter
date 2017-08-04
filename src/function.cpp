@@ -182,7 +182,7 @@ bool Function::execute(InstanceManager &manager,
                     return true;
                 }
                 auto name_str = name->get_name();
-                if (not name) {
+                if (not name_str) {
                     std::cerr << "Error! Cannot retrieve value of non-name!\n";
                     return true;
                 }
