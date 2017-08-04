@@ -79,9 +79,8 @@ bool Function::execute(InstanceManager &manager,
                 auto new_inst = manager.new_instance(classes.at(*cname_str));
                 set_val(*name_str, new_inst);
                 if (classes[*cname_str].functions.count("c__")) {
-                    auto ctor = classes[*cname_str].functions["c__"];
-                    Function func = {ctor, *get_val(*name_str)->get_instance()};
-                    if (func.execute(manager, classes, stack, globals)) {
+                    auto ctor = new_inst->get_func("c__");
+                    if (ctor.execute(manager, classes, stack, globals)) {
                         return true;
                     }
                 }
