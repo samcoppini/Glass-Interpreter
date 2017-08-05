@@ -230,7 +230,7 @@ bool Function::execute(InstanceManager &manager,
                 return false;
 
             case CommandType::BuiltinFunction:
-                if (handle_builtin(std::get<Builtin>(command.data), stack)) {
+                if (handle_builtin(std::get<Builtin>(command.data), stack, globals)) {
                     return true;
                 }
                 break;

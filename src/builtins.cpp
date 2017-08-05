@@ -49,7 +49,9 @@ std::map<std::string, Class> get_builtins() {
 }
 
 // Handles a builtin function, returning true if there was an error
-bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
+bool handle_builtin(Builtin type, std::vector<Variable> &stack,
+                    std::map<std::string, Variable> &globals)
+{
     switch (type) {
         case Builtin::InputLine: {
             std::string str;
@@ -441,9 +443,6 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
         }
 
         case Builtin::VarDelete: {
-            // Not exactly sure what this method is supposed to do, and it does
-            // nothing in reference implementation??? So I just pop the stack and
-            // check that it's an auto-generated name, and call that good
             auto top = pop_stack(stack);
             if (not top) {
                 return true;
@@ -459,6 +458,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack) {
                     return true;
                 }
             }
+            globals.erase(*name);
             break;
         }
     }
