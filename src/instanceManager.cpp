@@ -28,11 +28,17 @@ void InstanceManager::new_scope(Instance *cur_instance,
 void InstanceManager::unwind_scope() {
     executing_objects.pop_back();
     locals.pop_back();
-    collect_garbage();
 }
 
 // Returns a pointer to a newly-allocated instance of a certain type
 Instance *InstanceManager::new_instance(Class &type) {
+    static int num_allocations = 0;
+    num_allocations++;
+    if (num_allocations >= 1000) {
+        num_allocations = 0;
+        collect_garbage();
+    }
+
     auto inst_ptr = new Instance{type};
     instances[inst_ptr] = false;
     return inst_ptr;
