@@ -32,7 +32,6 @@ class Variable {
         std::optional<Function> get_function() const;
         std::optional<Instance *> get_instance() const;
         explicit operator bool() const;
-        operator std::string() const;
 };
 
 #endif

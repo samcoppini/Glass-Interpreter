@@ -67,17 +67,3 @@ Variable::operator bool() const {
         return false;
     }
 }
-
-Variable::operator std::string() const {
-    if (type == VarType::Number) {
-        return "number: " + std::to_string(std::get<double>(data));
-    } else if (type == VarType::String) {
-        return "string: \"" + std::get<std::string>(data) + "\"";
-    } else if (type == VarType::Name) {
-        return "name: (" + std::get<std::string>(data) + ")";
-    } else if (type == VarType::Function) {
-        return "function";
-    } else {
-        return "instance";
-    }
-}
