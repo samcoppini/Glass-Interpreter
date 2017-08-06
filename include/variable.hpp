@@ -16,7 +16,7 @@ enum class VarType {
 };
 
 class Variable {
-    protected:
+    private:
         VarType type;
         std::variant<double, std::string, Function, Instance *> data;
 

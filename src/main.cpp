@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     } else if (classes->count("M") == 0) {
         std::cerr << "Error! Class \"M\" is not defined!\n";
         return 1;
-    } else if (not classes->at("M").functions.count("m")) {
+    } else if (not classes->at("M").has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
     } else {
@@ -48,14 +48,14 @@ int main(int argc, char *argv[]) {
         globals.emplace("_Main", manager.new_instance(classes->at("M")));
         auto main_obj = *globals.at("_Main").get_instance();
 
-        if (classes->at("M").functions.count("c__")) {
+        if (classes->at("M").has_function("c__")) {
             auto ctor = main_obj->get_func("c__");
-            if (ctor.execute(manager, *classes, stack, globals)) {
+            if (ctor->execute(manager, *classes, stack, globals)) {
                 return 1;
             }
         }
         auto main_func = main_obj->get_func("m");
-        if (main_func.execute(manager, *classes, stack, globals)) {
+        if (main_func->execute(manager, *classes, stack, globals)) {
             return 1;
         } else {
             return 0;

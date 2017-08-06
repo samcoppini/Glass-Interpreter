@@ -213,7 +213,7 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
                               << " of a loop!\n";
                     return std::nullopt;
                 }
-                commands[loop_stack.top()].jump_loc = commands.size();
+                commands[loop_stack.top()].set_jump(commands.size());
                 commands.emplace_back(CommandType::LoopEnd, "", loop_stack.top());
                 loop_stack.pop();
                 break;
@@ -319,13 +319,12 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
             }
             auto func_name = func->first;
             auto commands = func->second;
-            if (new_class.functions.count(func_name)) {
+            if (new_class.add_function(func_name, commands)) {
                 std::cerr << "Error! \"" << *class_name
                           << "\" has multiple definitions of \""
                           << func_name << "\".\n";
                 return std::nullopt;
             }
-            new_class.functions[func_name] = commands;
         } else if (c == '\'') {
             if (get_comment(file)) {
                 return std::nullopt;

@@ -6,8 +6,13 @@
 #include <map>
 
 class Class {
-    public:
+    private:
         std::map<std::string, CommandList> functions;
+
+    public:
+        bool add_function(const std::string &name, const CommandList &commands);
+        bool has_function(const std::string &name) const;
+        CommandList &get_function(const std::string &name);
 };
 
 #endif

@@ -14,7 +14,7 @@ class InstanceManager;
 class Variable;
 
 class Function {
-    protected:
+    private:
         CommandList commands;
         Instance *cur_obj;
 

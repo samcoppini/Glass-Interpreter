@@ -32,7 +32,7 @@ bool Function::execute(InstanceManager &manager,
             if (name[0] == '_') {
                 return locals.at(name);
             } else if (std::islower(name[0])) {
-                return cur_obj->vars.at(name);
+                return cur_obj->get_var(name);
             } else {
                 return globals.at(name);
             }
@@ -47,7 +47,7 @@ bool Function::execute(InstanceManager &manager,
         if (name[0] == '_') {
             locals.insert_or_assign(name, var);
         } else if (std::islower(name[0])) {
-            cur_obj->vars.insert_or_assign(name, var);
+            cur_obj->set_var(name, var);
         } else {
             globals.insert_or_assign(name, var);
         }
@@ -55,7 +55,7 @@ bool Function::execute(InstanceManager &manager,
 
     for (unsigned i = 0; i < commands.size(); i++) {
         const auto &command = commands[i];
-        switch (command.type) {
+        switch (command.get_type()) {
             case CommandType::AssignClass: {
                 auto cname = pop_stack(stack);
                 auto name = pop_stack(stack);
@@ -78,11 +78,9 @@ bool Function::execute(InstanceManager &manager,
                 }
                 auto new_inst = manager.new_instance(classes.at(*cname_str));
                 set_val(*name_str, new_inst);
-                if (classes[*cname_str].functions.count("c__")) {
-                    auto ctor = new_inst->get_func("c__");
-                    if (ctor.execute(manager, classes, stack, globals)) {
-                        return true;
-                    }
+                auto ctor = new_inst->get_func("c__");
+                if (ctor and ctor->execute(manager, classes, stack, globals)) {
+                    return true;
                 }
                 break;
             }
@@ -119,7 +117,7 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::DupElement: {
-                int index = stack.size() - static_cast<int>(std::get<double>(command.data)) - 1;
+                int index = stack.size() - static_cast<int>(command.get_number()) - 1;
                 if (index < 0) {
                     std::cerr << "Error! Attempted to duplicate out-of-range stack value!\n";
                     return true;
@@ -165,13 +163,13 @@ bool Function::execute(InstanceManager &manager,
                     std::cerr << "Error! Cannot retrieve function from non-instance!\n";
                     return true;
                 }
-                auto class_funcs = (*object)->type.functions;
-                if (not class_funcs.count(*fname_str)) {
+                auto func = (*object)->get_func(*fname_str);
+                if (not func) {
                     std::cerr << "Error! \"" << *oname_str << "\" has no function \""
                               << *fname_str << "\"!\n";
                     return true;
                 }
-                stack.emplace_back(Function{class_funcs[*fname_str], *object});
+                stack.emplace_back(*func);
                 break;
             }
 
@@ -194,17 +192,17 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::LoopBegin: {
-                auto val = get_val(std::get<std::string>(command.data));
+                auto val = get_val(command.get_string());
                 if (not val) {
                     return true;
                 } else if (not *val) {
-                    i = command.jump_loc;
+                    i = command.get_jump();
                 }
                 break;
             }
 
             case CommandType::LoopEnd:
-                i = command.jump_loc - 1;
+                i = command.get_jump() - 1;
                 break;
 
             case CommandType::PopStack:
@@ -214,15 +212,15 @@ bool Function::execute(InstanceManager &manager,
                 break;
 
             case CommandType::PushName:
-                stack.emplace_back(VarType::Name, std::get<std::string>(command.data));
+                stack.emplace_back(VarType::Name, command.get_string());
                 break;
 
             case CommandType::PushNumber:
-                stack.emplace_back(std::get<double>(command.data));
+                stack.emplace_back(command.get_number());
                 break;
 
             case CommandType::PushString:
-                stack.emplace_back(VarType::String, std::get<std::string>(command.data));
+                stack.emplace_back(VarType::String, command.get_string());
                 break;
 
             case CommandType::Return:
@@ -230,7 +228,7 @@ bool Function::execute(InstanceManager &manager,
                 return false;
 
             case CommandType::BuiltinFunction:
-                if (handle_builtin(std::get<Builtin>(command.data), stack, globals)) {
+                if (handle_builtin(command.get_builtin(), stack, globals)) {
                     return true;
                 }
                 break;

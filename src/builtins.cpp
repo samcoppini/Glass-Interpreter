@@ -9,41 +9,41 @@
 
 std::map<std::string, Class> get_builtins() {
     Class input;
-    input.functions["l"] = {Builtin::InputLine};
-    input.functions["c"] = {Builtin::InputChar};
-    input.functions["e"] = {Builtin::InputEof};
+    input.add_function("l", {Builtin::InputLine});
+    input.add_function("c", {Builtin::InputChar});
+    input.add_function("e", {Builtin::InputEof});
 
     Class output;
-    output.functions["o"] = {Builtin::OutputStr};
-    output.functions["on"] = {Builtin::OutputNumber};
+    output.add_function("o", {Builtin::OutputStr});
+    output.add_function("on", {Builtin::OutputNumber});
 
     Class math;
-    math.functions["a"] = {Builtin::MathAdd};
-    math.functions["s"] = {Builtin::MathSub};
-    math.functions["m"] = {Builtin::MathMult};
-    math.functions["d"] = {Builtin::MathDiv};
-    math.functions["mod"] = {Builtin::MathMod};
-    math.functions["f"] = {Builtin::MathFloor};
-    math.functions["e"] = {Builtin::MathEqual};
-    math.functions["ne"] = {Builtin::MathNotEqual};
-    math.functions["lt"] = {Builtin::MathLessThan};
-    math.functions["le"] = {Builtin::MathLessOrEqual};
-    math.functions["gt"] = {Builtin::MathGreaterThan};
-    math.functions["ge"] = {Builtin::MathGreaterOrEqual};
+    math.add_function("a", {Builtin::MathAdd});
+    math.add_function("s", {Builtin::MathSub});
+    math.add_function("m", {Builtin::MathMult});
+    math.add_function("d", {Builtin::MathDiv});
+    math.add_function("mod", {Builtin::MathMod});
+    math.add_function("f", {Builtin::MathFloor});
+    math.add_function("e", {Builtin::MathEqual});
+    math.add_function("ne", {Builtin::MathNotEqual});
+    math.add_function("lt", {Builtin::MathLessThan});
+    math.add_function("le", {Builtin::MathLessOrEqual});
+    math.add_function("gt", {Builtin::MathGreaterThan});
+    math.add_function("ge", {Builtin::MathGreaterOrEqual});
 
     Class string;
-    string.functions["l"] = {Builtin::StrLength};
-    string.functions["i"] = {Builtin::StrIndex};
-    string.functions["si"] = {Builtin::StrReplace};
-    string.functions["a"] = {Builtin::StrConcatenate};
-    string.functions["d"] = {Builtin::StrSplit};
-    string.functions["e"] = {Builtin::StrEqual};
-    string.functions["ns"] = {Builtin::StrNumtoChar};
-    string.functions["sn"] = {Builtin::StrChartoNum};
+    string.add_function("l", {Builtin::StrLength});
+    string.add_function("i", {Builtin::StrIndex});
+    string.add_function("si", {Builtin::StrReplace});
+    string.add_function("a", {Builtin::StrConcatenate});
+    string.add_function("d", {Builtin::StrSplit});
+    string.add_function("e", {Builtin::StrEqual});
+    string.add_function("ns", {Builtin::StrNumtoChar});
+    string.add_function("sn", {Builtin::StrChartoNum});
 
     Class vars;
-    vars.functions["n"] = {Builtin::VarNew};
-    vars.functions["d"] = {Builtin::VarDelete};
+    vars.add_function("n", {Builtin::VarNew});
+    vars.add_function("d", {Builtin::VarDelete});
 
     return {{"A", math}, {"I", input}, {"O", output}, {"S", string}, {"V", vars}};
 }
