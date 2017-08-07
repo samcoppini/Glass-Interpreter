@@ -143,12 +143,12 @@ std::optional<std::string> get_string(std::ifstream &file) {
 
 // Returns a list of commands from the file, ended by a given character, or
 // returns nullopt if there's some sort of parsing error
-std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
+std::optional<CommandList> get_commands(std::ifstream &file) {
     std::stack<int> loop_stack;
     CommandList commands;
     char c;
 
-    while (file.get(c) and c != end_char) {
+    while (file.get(c) and c != ']') {
         switch (c) {
             case '\'':
                 if (get_comment(file)) {
@@ -262,7 +262,7 @@ std::optional<CommandList> get_commands(std::ifstream &file, char end_char) {
         }
     }
 
-    if (c != end_char) {
+    if (c != ']') {
         std::cerr << "Error! End of file encountered when parsing function!\n";
         return std::nullopt;
     }
@@ -287,7 +287,7 @@ std::optional<std::pair<std::string, CommandList>> get_func(std::ifstream &file)
         return std::nullopt;
     }
 
-    auto func_cmds = get_commands(file, ']');
+    auto func_cmds = get_commands(file);
     if (not func_cmds) {
         return std::nullopt;
     }
