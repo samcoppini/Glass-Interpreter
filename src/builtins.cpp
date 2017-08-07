@@ -296,8 +296,12 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                 std::cerr << "Cannot index a non-string!\n";
                 return true;
             }
-            auto index = static_cast<int>(*num);
-            if (index < 0 or (unsigned) index >= str->size()) {
+            if (*num < 0) {
+                stack.emplace_back(VarType::String, "");
+                break;
+            }
+            auto index = static_cast<std::size_t>(*num);
+            if (index >= str->size()) {
                 stack.emplace_back(VarType::String, "");
             } else {
                 stack.emplace_back(VarType::String, std::string{(*str)[index]});
@@ -329,8 +333,12 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                 std::cerr << "Error! Cannot replace character with multi-character string!\n";
                 return true;
             }
-            auto index = static_cast<int>(*num);
-            if (index < 0 or (unsigned) index >= string->size()) {
+            if (*num < 0) {
+                std::cerr << "Error! Cannot use negative index into string!\n";
+                return true;
+            }
+            auto index = static_cast<std::size_t>(*num);
+            if (index >= string->size()) {
                 std::cerr << "Error! Index into string is out of range!\n";
                 return true;
             } else {
@@ -369,11 +377,13 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                 std::cerr << "Error! Cannot use non-number as index to split string!\n";
                 return true;
             }
-            auto index = static_cast<int>(*pos);
-            if (index <= 0) {
+            if (*pos < 0) {
                 stack.emplace_back(VarType::String, "");
                 stack.emplace_back(VarType::String, *string);
-            } else if ((unsigned) index >= string->size()) {
+                break;
+            }
+            auto index = static_cast<std::size_t>(*pos);
+            if (index >= string->size()) {
                 stack.emplace_back(VarType::String, *string);
                 stack.emplace_back(VarType::String, "");
             } else {

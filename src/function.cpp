@@ -53,7 +53,7 @@ bool Function::execute(InstanceManager &manager,
         }
     };
 
-    for (unsigned i = 0; i < commands.size(); i++) {
+    for (std::size_t i = 0; i < commands.size(); i++) {
         const auto &command = commands[i];
         switch (command.get_type()) {
             case CommandType::AssignClass: {
@@ -117,12 +117,12 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::DupElement: {
-                int index = stack.size() - static_cast<int>(command.get_number()) - 1;
-                if (index < 0) {
+                auto dup = static_cast<std::size_t>(command.get_number());
+                if (dup >= stack.size()) {
                     std::cerr << "Error! Attempted to duplicate out-of-range stack value!\n";
                     return true;
                 }
-                stack.push_back(stack[index]);
+                stack.push_back(stack[stack.size() - dup - 1]);
                 break;
             }
 

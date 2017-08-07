@@ -13,7 +13,7 @@ Command::Command(CommandType type, double dval): type(type), data(dval) {
 Command::Command(CommandType type, const std::string &sval): type(type), data(sval) {
 }
 
-Command::Command(CommandType type, const std::string &sval, unsigned jump):
+Command::Command(CommandType type, const std::string &sval, std::size_t jump):
 type(type), data(sval), jump_loc(jump) {
 }
 
@@ -33,10 +33,10 @@ std::string Command::get_string() const {
     return std::get<std::string>(data);
 }
 
-void Command::set_jump(unsigned new_jump) {
+void Command::set_jump(std::size_t new_jump) {
     jump_loc = new_jump;
 }
 
-unsigned Command::get_jump() const {
+std::size_t Command::get_jump() const {
     return jump_loc;
 }
