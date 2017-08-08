@@ -9,7 +9,7 @@
 #include <iostream>
 
 Function::Function(CommandList &commands, Instance *cur_obj):
-commands(commands), cur_obj(cur_obj) {
+commands(&commands), cur_obj(cur_obj) {
 }
 
 Instance *Function::get_obj() const {
@@ -53,8 +53,8 @@ bool Function::execute(InstanceManager &manager,
         }
     };
 
-    for (std::size_t i = 0; i < commands.size(); i++) {
-        const auto &command = commands[i];
+    for (std::size_t i = 0; i < commands->size(); i++) {
+        const auto &command = commands->at(i);
         switch (command.get_type()) {
             case CommandType::AssignClass: {
                 auto cname = pop_stack(stack);

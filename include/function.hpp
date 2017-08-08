@@ -15,7 +15,7 @@ class Variable;
 
 class Function {
     private:
-        CommandList commands;
+        CommandList *commands;
         Instance *cur_obj;
 
     public:
