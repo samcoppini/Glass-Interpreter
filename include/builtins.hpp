@@ -39,6 +39,7 @@ enum class Builtin: int {
 };
 
 std::map<std::string, Class> get_builtins();
+void remove_builtins(std::map<std::string, Class> &classes);
 bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                     std::map<std::string, Variable> &globals);
 

@@ -48,6 +48,15 @@ std::map<std::string, Class> get_builtins() {
     return {{"A", math}, {"I", input}, {"O", output}, {"S", string}, {"V", vars}};
 }
 
+// Remove the builtin classes from the given map of classes
+void remove_builtins(std::map<std::string, Class> &classes) {
+    classes.erase("A");
+    classes.erase("I");
+    classes.erase("O");
+    classes.erase("S");
+    classes.erase("V");
+}
+
 // Handles a builtin function, returning true if there was an error
 bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                     std::map<std::string, Variable> &globals)

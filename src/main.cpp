@@ -1,5 +1,6 @@
 #include "instance.hpp"
 #include "instanceManager.hpp"
+#include "minify.hpp"
 #include "parse.hpp"
 #include "variable.hpp"
 
@@ -8,10 +9,13 @@
 
 int main(int argc, char *argv[]) {
     std::string filename;
+    bool minify_code = false;
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
-        if (arg[0] == '-') {
+        if (arg == "--minify" or arg == "-m") {
+            minify_code = true;
+        } else if (arg[0] == '-') {
             std::cerr << "Error! Invalid command-line argument \""
                       << arg << "\"!\n";
             return 1;
@@ -40,6 +44,8 @@ int main(int argc, char *argv[]) {
     } else if (not classes->at("M").has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
+    } else if (minify_code) {
+        std::cout << get_minified_source(*classes);
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;

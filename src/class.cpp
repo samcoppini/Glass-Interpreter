@@ -21,3 +21,8 @@ bool Class::has_function(const std::string &name) const {
 CommandList &Class::get_function(const std::string &name) {
     return functions.at(name);
 }
+
+// Returns all of the functions in the class
+const std::map<std::string, CommandList> &Class::get_functions() const {
+    return functions;
+}

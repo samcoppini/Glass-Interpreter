@@ -13,6 +13,7 @@ class Class {
         bool add_function(const std::string &name, const CommandList &commands);
         bool has_function(const std::string &name) const;
         CommandList &get_function(const std::string &name);
+        const std::map<std::string, CommandList> &get_functions() const;
 };
 
 #endif
