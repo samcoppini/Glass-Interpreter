@@ -2,13 +2,14 @@
 #include "builtins.hpp"
 #include "class.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <sstream>
+#include <set>
 
 // Names that absolutely must stay the same, or else the program may not be
 // able to call builtin functions or even run
-const std::string PREDEFINED_NAMES[] = {
+const std::set<std::string> PREDEFINED_NAMES = {
     "A", "I", "M", "O", "S", "V", "a", "c", "d", "e", "f", "ge", "gt", "i",
     "l", "le", "lt", "m", "n", "ne", "ns", "mod", "o", "on", "s", "si", "sn",
     "c__", "d__"
@@ -33,6 +34,36 @@ std::string escape_string(const std::string &str) {
         }
     }
     return new_str;
+}
+
+// Given the list of classes, returns a list of names, ordered by how
+// frequently they appear, with the most frequent names being first
+std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
+    std::map<std::string, int> name_freqs;
+    for (const auto &class_info: classes) {
+        name_freqs[class_info.first] += 1;
+        for (const auto &func: class_info.second.get_functions()) {
+            name_freqs[func.first] += 1;
+            for (const auto &command: func.second) {
+                if (command.get_type() == CommandType::LoopBegin or
+                    command.get_type() == CommandType::PushName)
+                {
+                        name_freqs[command.get_string()] += 1;
+                }
+            }
+        }
+    }
+    std::vector<std::pair<int, std::string>> ordered_names;
+    for (const auto &name: name_freqs) {
+        ordered_names.emplace_back(name.second, name.first);
+    }
+    std::sort(ordered_names.rbegin(), ordered_names.rend());
+
+    std::vector<std::string> names;
+    for (const auto &name: ordered_names) {
+        names.push_back(name.second);
+    }
+    return names;
 }
 
 // Returns a minified respresentation of the source code, based off of the
@@ -85,40 +116,48 @@ std::string get_minified_source(std::map<std::string, Class> &classes) {
         }
     };
 
-    // Returns the new name for a name, and if the name has not be redefined
-    // yet, it creates a new, (hopefully shorter) version of the name
-    auto get_name = [&] (const std::string &name) -> std::string {
-        std::string new_name;
-        if (reassigned_names.count(name)) {
-            new_name = reassigned_names[name];
-        } else {
-            if (std::isupper(name[0])) {
+    // Reassign a name to a new, (hopefully) shorter name
+    auto assign_name = [&] (const std::string &name) {
+        if (PREDEFINED_NAMES.count(name)) {
+            return;
+        }
+        if (std::isupper(name[0])) {
+            inc_name(upper_name);
+            auto new_name = upper_name;
+            new_name[0] = std::toupper(new_name[0]);
+            while (PREDEFINED_NAMES.count(new_name)) {
                 inc_name(upper_name);
                 new_name = upper_name;
                 new_name[0] = std::toupper(new_name[0]);
-                while (reassigned_names.count(new_name)) {
-                    inc_name(upper_name);
-                    new_name = upper_name;
-                    new_name[0] = std::toupper(new_name[0]);
-                }
-                reassigned_names[name] = new_name;
-            } else if (std::islower(name[0])) {
-                inc_name(lower_name);
-                while (reassigned_names.count(lower_name)) {
-                    inc_name(lower_name);
-                }
-                new_name = reassigned_names[name] = lower_name;
-            } else {
-                inc_name(under_name);
-                new_name = reassigned_names[name] = "_" + under_name;
             }
+            reassigned_names[name] = new_name;
+        } else if (std::islower(name[0])) {
+            inc_name(lower_name);
+            while (PREDEFINED_NAMES.count(lower_name)) {
+                inc_name(lower_name);
+            }
+            reassigned_names[name] = lower_name;
+        } else {
+            inc_name(under_name);
+            reassigned_names[name] = "_" + under_name;
         }
+    };
+
+    // Returns the representation of a name, with parentheses around it, if
+    // it can't be written as a single character
+    auto get_name = [&] (const std::string &name) -> std::string {
+        auto new_name = reassigned_names[name];
         if (new_name.size() > 1) {
             return "(" + new_name + ")";
         } else {
             return new_name;
         }
     };
+
+    auto names = order_names(classes);
+    for (const auto &name: names) {
+        assign_name(name);
+    }
 
     for (const auto &class_info: classes) {
         new_code += "{";
