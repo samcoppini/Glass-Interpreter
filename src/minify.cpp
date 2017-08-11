@@ -68,7 +68,9 @@ std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
 
 // Returns a minified respresentation of the source code, based off of the
 // already-parsed class definitions
-std::string get_minified_source(std::map<std::string, Class> &classes) {
+std::string get_minified_source(std::map<std::string, Class> &classes,
+                                std::size_t line_width)
+{
     std::map<std::string, std::string> reassigned_names;
 
     // Make sure we don't reassign the names of builtin functions
@@ -78,6 +80,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes) {
 
     // The current names for Global, class and _local variables
     std::string upper_name = "`", lower_name = "`", under_name = "`";
+    std::string cur_line;
     std::string new_code;
 
     remove_builtins(classes);
@@ -154,73 +157,84 @@ std::string get_minified_source(std::map<std::string, Class> &classes) {
         }
     };
 
+    auto add_to_source = [&] (const std::string &new_src) {
+        if (line_width == 0) {
+            cur_line += new_src;
+        } else if (cur_line.size() + new_src.size() > line_width) {
+            new_code += cur_line + "\n";
+            cur_line = new_src;
+        } else {
+            cur_line += new_src;
+        }
+    };
+
     auto names = order_names(classes);
     for (const auto &name: names) {
         assign_name(name);
     }
 
     for (const auto &class_info: classes) {
-        new_code += "{";
-        new_code += get_name(class_info.first);
+        add_to_source("{");
+        add_to_source(get_name(class_info.first));
         for (const auto &func_info: class_info.second.get_functions()) {
-            new_code += "[";
-            new_code += get_name(func_info.first);
+            add_to_source("[");
+            add_to_source(get_name(func_info.first));
             for (const auto &command: func_info.second) {
                 switch (command.get_type()) {
                     case CommandType::AssignClass:
-                        new_code += "!";
+                        add_to_source("!");
                         break;
 
                     case CommandType::AssignSelf:
-                        new_code += "$";
+                        add_to_source("$");
                         break;
 
                     case CommandType::AssignValue:
-                        new_code += "=";
+                        add_to_source("=");
                         break;
 
                     case CommandType::DupElement:
-                        new_code += get_number(command.get_number(), true);
+                        add_to_source(get_number(command.get_number(), true));
                         break;
 
                     case CommandType::ExecuteFunc:
-                        new_code += "?";
+                        add_to_source("?");
                         break;
 
                     case CommandType::GetFunction:
-                        new_code += ".";
+                        add_to_source(".");
                         break;
 
                     case CommandType::GetValue:
-                        new_code += "*";
+                        add_to_source("*");
                         break;
 
                     case CommandType::LoopBegin:
-                        new_code += "/" + get_name(command.get_string());
+                        add_to_source("/" + get_name(command.get_string()));
                         break;
 
                     case CommandType::LoopEnd:
-                        new_code += "\\";
+                        add_to_source("\\");
                         break;
 
                     case CommandType::PopStack:
-                        new_code += ",";
+                        add_to_source(",");
                         break;
 
                     case CommandType::PushName:
-                        new_code += get_name(command.get_string());
+                        add_to_source(get_name(command.get_string()));
                         break;
 
                     case CommandType::PushNumber:
-                        new_code += "<" + get_number(command.get_number(), false) + ">";
+                        add_to_source("<" + get_number(command.get_number(), false) + ">");
                         break;
 
                     case CommandType::PushString:
-                        new_code += "\"" + escape_string(command.get_string()) + "\"";
+                        add_to_source("\"" + escape_string(command.get_string()) + "\"");
                         break;
 
                     case CommandType::Return:
-                        new_code += "^";
+                        add_to_source("^");
                         break;
 
                     case CommandType::BuiltinFunction:
@@ -228,10 +242,10 @@ std::string get_minified_source(std::map<std::string, Class> &classes) {
                         break;
                 }
             }
-            new_code += "]";
+            add_to_source("]");
         }
-        new_code += "}";
+        add_to_source("}");
     }
 
-    return new_code;
+    return new_code + cur_line;
 }
