@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 
     std::ifstream file{filename};
     if (not file.is_open()) {
-        std::cerr << "Unable to open \"" << argv[1] << "\".\n";
+        std::cerr << "Unable to open \"" << filename << "\".\n";
         return 1;
     }
 
