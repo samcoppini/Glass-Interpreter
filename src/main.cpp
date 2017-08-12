@@ -7,6 +7,16 @@
 #include <fstream>
 #include <iostream>
 
+void print_help(const std::string &interpreter_name) {
+    std::cout << "usage: "
+              << interpreter_name
+              << " glass_file " << "[--minify [--width w] | --help]\n";
+
+    std::cout << "--help     Display this help message\n"
+              << "--minify   Outputs a minified version of the source code\n"
+              << "--width    Restricts the length of lines of minified source\n";
+}
+
 int main(int argc, char *argv[]) {
     std::string filename;
     bool minify_code = false;
@@ -14,9 +24,9 @@ int main(int argc, char *argv[]) {
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
-        if (arg == "--minify" or arg == "-m") {
+        if (arg == "--minify") {
             minify_code = true;
-        } else if (arg == "--width" or arg == "-w") {
+        } else if (arg == "--width") {
             if (i + 1 == argc) {
                 std::cerr << "Error! " << arg << " argument supplied, but no"
                           << " width was specified!\n";
@@ -36,6 +46,9 @@ int main(int argc, char *argv[]) {
             } catch (const std::out_of_range &e) {
                 width = 0;
             }
+        } else if (arg == "--help") {
+            print_help(argv[0]);
+            return 0;
         } else if (arg[0] == '-') {
             std::cerr << "Error! Invalid command-line argument \""
                       << arg << "\"!\n";
@@ -46,7 +59,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (filename == "") {
-        std::cerr << "Please provide a Glass file to use the interpreter!\n";
+        print_help(argv[0]);
         return 1;
     } else if (width != 0 and not minify_code) {
         std::cerr << "Error! Width command-line parameter specified without"
