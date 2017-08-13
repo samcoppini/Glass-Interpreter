@@ -4,6 +4,7 @@ SOURCES=$(wildcard src/*.cpp)
 OBJS=$(SOURCES:src/%.cpp=objs/%.o)
 
 objs/%.o: src/%.cpp
+	mkdir -p objs
 	$(CC) $< -c -o $@$(CFLAGS)
 
 all: $(OBJS)
