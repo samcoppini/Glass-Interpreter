@@ -1,0 +1,79 @@
+'A class for manipulating booleans'
+{(Bool)
+    'Not'
+    [n(_t)1=,/(_t)<0>^\<1>]
+    'And'
+    [a(_cmp1)1=,(_cmp2)1=,/(_cmp1)/(_cmp2)<1>^\<0>^\<0>]
+}
+
+'An extension to the builtin S class that provides additional
+ string comparison methods'
+{(String)S
+    [(c__)s$aA!b(Bool)!]
+    [(ne)
+        se.?bn.?
+    ]
+    [(lt)
+        s(strcmp).?<1>ae.?
+    ]
+    [(le)
+        s(strcmp).?<0>a(ge).?
+    ]
+    [(gt)
+        s(strcmp).?<-1>ae.?
+    ]
+    [(ge)
+        s(strcmp).?<0>a(le).?
+    ]
+    'String comparison function. Takes two strings from the stack
+     If the top string is "greater", then this function returns 1
+     If the lower is "greater", then this function returns -1
+     If they are equal, this function returns 0'
+    [(strcmp)
+        (_s1)1=,(_s2)1=,
+        (_len1)(_s1)*sl.?=
+        (_len2)(_s2)*sl.?=
+        (_i)<0>=
+        (_cmp)(_len1)*(_i)*a(gt).?(_len2)*(_i)*a(gt).?ba.?=
+        /(_cmp)
+            (_c1)(_s1)*(_i)*si.?=
+            (_c2)(_s2)*(_i)*si.?=
+            (_cmp)(_c1)*(_c2)*s(ne).?=
+            /(_cmp)
+                (_cmp)(_c1)*s(sn).?(_c2)*s(sn).?a(lt).?=
+                /(_cmp)
+                    <-1>^
+                \
+                <1>^
+            \
+            (_i)(_i)*<1>aa.?=
+            (_cmp)(_len1)*(_i)*a(gt).?(_len2)*(_i)*a(gt).?ba.?=
+        \
+        (_cmp)(_len1)*(_len2)*ae.?=
+        /(_cmp)
+            <0>^
+        \
+        (_cmp)(_len1)*(_len2)*a(lt).?=
+        /(_cmp)
+            <-1>^
+        \
+        <1>
+    ]
+}
+
+{M[m
+    oO!
+    s(String)!
+
+    'Some tests of the string comparison functions'
+    "Hello" "World" s(lt).?o(on).?"\n"oo.?
+    "Hello" "World" s(le).?o(on).?"\n"oo.?
+    "World" "Hello" s(gt).?o(on).?"\n"oo.?
+    "World" "Hello" s(ge).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(le).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(ge).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(e).?o(on).?"\n"oo.?
+    "Kitty" "Kittens" s(gt).?o(on).?"\n"oo.?
+    "Hello" "Hell" s(gt).?o(on).?"\n"oo.?
+    "Hell" "Hello" s(lt).?o(on).?"\n"oo.?
+]}

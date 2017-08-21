@@ -484,3 +484,40 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
 
     return false;
 }
+
+// Returns the text for executing a given builtin function
+// temp_name is a name to be given that won't conflict with any other
+// names in the source code
+std::string builtin_text(Builtin type, const std::string &temp_name) {
+    std::map<Builtin, std::pair<std::string, std::string>> builtin_info = {
+        {Builtin::InputLine,          {"I", "l"}},
+        {Builtin::InputChar,          {"I", "c"}},
+        {Builtin::InputEof,           {"I", "e"}},
+        {Builtin::MathAdd,            {"M", "a"}},
+        {Builtin::MathSub,            {"M", "s"}},
+        {Builtin::MathMult,           {"M", "m"}},
+        {Builtin::MathDiv,            {"M", "d"}},
+        {Builtin::MathMod,            {"M", "m"}},
+        {Builtin::MathFloor,          {"M", "f"}},
+        {Builtin::MathEqual,          {"M", "e"}},
+        {Builtin::MathNotEqual,       {"M", "(ne)"}},
+        {Builtin::MathLessThan,       {"M", "(lt)"}},
+        {Builtin::MathLessOrEqual,    {"M", "(le)"}},
+        {Builtin::MathGreaterThan,    {"M", "(gt)"}},
+        {Builtin::MathGreaterOrEqual, {"M", "(ge)"}},
+        {Builtin::OutputStr,          {"O", "o"}},
+        {Builtin::OutputNumber,       {"O", "(on)"}},
+        {Builtin::StrLength,          {"S", "l"}},
+        {Builtin::StrIndex,           {"S", "i"}},
+        {Builtin::StrReplace,         {"S", "(si)"}},
+        {Builtin::StrConcatenate,     {"S", "a"}},
+        {Builtin::StrSplit,           {"S", "d"}},
+        {Builtin::StrEqual,           {"S", "e"}},
+        {Builtin::StrNumtoChar,       {"S", "(ns)"}},
+        {Builtin::StrChartoNum,       {"S", "(sn)"}},
+        {Builtin::VarNew,             {"V", "n"}},
+        {Builtin::VarDelete,          {"V", "d"}},
+    };
+    auto info = builtin_info[type];
+    return temp_name + info.first + "!" + temp_name + info.second + ".?";
+}

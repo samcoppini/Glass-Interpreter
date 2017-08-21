@@ -10,22 +10,28 @@
 void print_help(const std::string &interpreter_name) {
     std::cout << "usage: "
               << interpreter_name
-              << " glass_file " << "[--minify [--width w] | --help]\n";
+              << " glass_file [args...]" << "\n";
 
-    std::cout << "--help     Display this help message\n"
-              << "--minify   Outputs a minified version of the source code\n"
-              << "--width    Restricts the length of lines of minified source\n";
+    std::cout << "--convert   Convert glass code with extensions to standard glass\n"
+              << "--help      Display this help message\n"
+              << "--minify    Outputs a minified version of the source code\n"
+              << "--pedantic  Disallow extensions to the base language of Glass\n"
+              << "--width     Restricts the length of lines of minified source\n";
 }
 
 int main(int argc, char *argv[]) {
     std::string filename;
-    bool minify_code = false;
+    bool minify_code = false, pedantic = false, convert_code = false;
     std::size_t width = 0;
 
     for (int i = 1; i < argc; i++) {
         std::string arg{argv[i]};
         if (arg == "--minify") {
             minify_code = true;
+        } else if (arg == "--pedantic") {
+            pedantic = true;
+        } else if (arg == "--convert") {
+            convert_code = true;
         } else if (arg == "--width") {
             if (i + 1 == argc) {
                 std::cerr << "Error! " << arg << " argument supplied, but no"
@@ -73,17 +79,26 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    auto classes = get_classes(file);
+    auto classes = get_classes(file, pedantic);
     if (not classes) {
         return 1;
     } else if (classes->count("M") == 0) {
         std::cerr << "Error! Class \"M\" is not defined!\n";
         return 1;
-    } else if (not classes->at("M").has_function("m")) {
+    }
+    if (check_inheritance(*classes)) {
+        return 1;
+    }
+    if (not minify_code or convert_code) {
+        for (auto &class_info: *classes) {
+            class_info.second.handle_inheritance(*classes);
+        }
+    }
+    if (not classes->at("M").has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
-    } else if (minify_code) {
-        std::cout << get_minified_source(*classes, width);
+    } else if (minify_code or convert_code) {
+        std::cout << get_minified_source(*classes, width, minify_code, convert_code);
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;

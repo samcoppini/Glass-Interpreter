@@ -297,7 +297,7 @@ std::optional<std::pair<std::string, CommandList>> get_func(std::ifstream &file)
 
 // Returns a pair of class's name, and the actual class, or nullopt if there is
 // a parsing error
-std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
+std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file, bool pedantic) {
     auto class_name = get_name(file);
     if (not class_name) {
         return std::nullopt;
@@ -329,6 +329,18 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
             if (get_comment(file)) {
                 return std::nullopt;
             }
+        } else if (not pedantic and (c == '(' or std::isalpha(c))) {
+            file.unget();
+            auto parent_name = get_name(file, false);
+            if (not parent_name) {
+                return std::nullopt;
+            }
+            if (new_class.add_parent(*parent_name)) {
+                std::cerr << "Error! \"" << *class_name
+                          << "\" inherits from \"" << *parent_name
+                          << "\" multiple times.\n";
+                return std::nullopt;
+            }
         } else {
             std::cerr << "Error! Unexpected \"" << c
                       << "\" character encountered when parsing \""
@@ -347,7 +359,7 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file) {
 
 // Returns all of the classes in the file, or nullopt if there's some sort of
 // parsing error
-std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file) {
+std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file, bool pedantic) {
     auto classes = get_builtins();
     char c;
 
@@ -355,7 +367,7 @@ std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file) {
         if (std::isspace(c)) {
             continue;
         } else if (c == '{') {
-            auto class_pair = get_class(file);
+            auto class_pair = get_class(file, pedantic);
             if (not class_pair) {
                 return std::nullopt;
             }

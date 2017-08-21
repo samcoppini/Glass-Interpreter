@@ -69,7 +69,7 @@ std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
 // Returns a minified respresentation of the source code, based off of the
 // already-parsed class definitions
 std::string get_minified_source(std::map<std::string, Class> &classes,
-                                std::size_t line_width)
+                                std::size_t line_width, bool minify_code, bool convert_code)
 {
     std::map<std::string, std::string> reassigned_names;
 
@@ -149,7 +149,12 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
     // Returns the representation of a name, with parentheses around it, if
     // it can't be written as a single character
     auto get_name = [&] (const std::string &name) -> std::string {
-        auto new_name = reassigned_names[name];
+        std::string new_name;
+        if (minify_code) {
+            new_name = reassigned_names[name];
+        } else {
+            new_name = name;
+        }
         if (new_name.size() > 1) {
             return "(" + new_name + ")";
         } else {
@@ -169,13 +174,20 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
     };
 
     auto names = order_names(classes);
-    for (const auto &name: names) {
-        assign_name(name);
+    if (minify_code) {
+        for (const auto &name: names) {
+            assign_name(name);
+        }
     }
 
     for (const auto &class_info: classes) {
         add_to_source("{");
         add_to_source(get_name(class_info.first));
+        if (not convert_code) {
+            for (const auto &parent: class_info.second.get_parents()) {
+                add_to_source(get_name(parent));
+            }
+        }
         for (const auto &func_info: class_info.second.get_functions()) {
             add_to_source("[");
             add_to_source(get_name(func_info.first));
@@ -238,7 +250,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                         break;
 
                     case CommandType::BuiltinFunction:
-                        assert(false);
+                        add_to_source(builtin_text(command.get_builtin(), "(_t)"));
                         break;
                 }
             }
