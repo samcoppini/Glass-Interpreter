@@ -1,0 +1,18 @@
+"string.glass"
+
+{M[m
+    oO!
+    s(String)!
+
+    'Some tests of the string comparison functions'
+    "Hello" "World" s(lt).?o(on).?"\n"oo.?
+    "Hello" "World" s(le).?o(on).?"\n"oo.?
+    "World" "Hello" s(gt).?o(on).?"\n"oo.?
+    "World" "Hello" s(ge).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(le).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(ge).?o(on).?"\n"oo.?
+    "Hello" "Hello" s(e).?o(on).?"\n"oo.?
+    "Kitty" "Kittens" s(gt).?o(on).?"\n"oo.?
+    "Hello" "Hell" s(gt).?o(on).?"\n"oo.?
+    "Hell" "Hello" s(lt).?o(on).?"\n"oo.?
+]}

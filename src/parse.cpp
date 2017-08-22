@@ -357,10 +357,21 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file, bool
     return {{*class_name, new_class}};
 }
 
-// Returns all of the classes in the file, or nullopt if there's some sort of
-// parsing error
-std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file, bool pedantic) {
-    auto classes = get_builtins();
+// Returns a pair of all the classes in the given file, and all the files
+// included by the file. However, if there is a parsing error, this will
+// instead return std::nullopt
+std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>> get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
+    std::ifstream file{filename};
+    if (not file.is_open()) {
+        std::cerr << "Unable to open \"" << filename << "\".\n";
+        return std::nullopt;
+    }
+
+    std::vector<std::string> included_files;
+    std::map<std::string, Class> classes;
+    if (add_builtins) {
+        classes = get_builtins();
+    }
     char c;
 
     while (file.get(c)) {
@@ -379,6 +390,12 @@ std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file, boo
                 return std::nullopt;
             }
             classes[class_name] = new_class;
+        } else if (not pedantic and c == '"') {
+            auto new_file = get_string(file);
+            if (not new_file) {
+                return std::nullopt;
+            }
+            included_files.push_back(*new_file);
         } else if (c == '\'') {
             if (get_comment(file)) {
                 return std::nullopt;
@@ -390,5 +407,5 @@ std::optional<std::map<std::string, Class>> get_classes(std::ifstream &file, boo
         }
     }
 
-    return classes;
+    return {{classes, included_files}};
 }

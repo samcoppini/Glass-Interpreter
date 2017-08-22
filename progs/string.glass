@@ -1,10 +1,4 @@
-'A class for manipulating booleans'
-{(Bool)
-    'Not'
-    [n(_t)1=,/(_t)<0>^\<1>]
-    'And'
-    [a(_cmp1)1=,(_cmp2)1=,/(_cmp1)/(_cmp2)<1>^\<0>^\<0>]
-}
+"bool.glass"
 
 'An extension to the builtin S class that provides additional
  string comparison methods'
@@ -60,20 +54,3 @@
         <1>
     ]
 }
-
-{M[m
-    oO!
-    s(String)!
-
-    'Some tests of the string comparison functions'
-    "Hello" "World" s(lt).?o(on).?"\n"oo.?
-    "Hello" "World" s(le).?o(on).?"\n"oo.?
-    "World" "Hello" s(gt).?o(on).?"\n"oo.?
-    "World" "Hello" s(ge).?o(on).?"\n"oo.?
-    "Hello" "Hello" s(le).?o(on).?"\n"oo.?
-    "Hello" "Hello" s(ge).?o(on).?"\n"oo.?
-    "Hello" "Hello" s(e).?o(on).?"\n"oo.?
-    "Kitty" "Kittens" s(gt).?o(on).?"\n"oo.?
-    "Hello" "Hell" s(gt).?o(on).?"\n"oo.?
-    "Hell" "Hello" s(lt).?o(on).?"\n"oo.?
-]}

@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <set>
 
 void print_help(const std::string &interpreter_name) {
     std::cout << "usage: "
@@ -73,48 +74,77 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::ifstream file{filename};
-    if (not file.is_open()) {
-        std::cerr << "Unable to open \"" << filename << "\".\n";
+    auto class_pair = get_classes(filename, pedantic);
+    if (not class_pair) {
         return 1;
     }
-
-    auto classes = get_classes(file, pedantic);
-    if (not classes) {
-        return 1;
-    } else if (classes->count("M") == 0) {
-        std::cerr << "Error! Class \"M\" is not defined!\n";
-        return 1;
+    auto classes = class_pair->first;
+    auto included_files = class_pair->second;
+    if (included_files.size() > 0) {
+        std::set<std::string> already_read = {filename};
+        std::string directory = filename.substr(0, filename.find_last_of("/\\") + 1);
+        for (auto &file: included_files) {
+            file = directory + file;
+        }
+        while (included_files.size() > 0) {
+            auto to_read = included_files.back();
+            included_files.pop_back();
+            if (already_read.count(to_read) == 0) {
+                class_pair = get_classes(to_read, pedantic, false);
+                if (not class_pair) {
+                    return 1;
+                }
+                auto new_classes = class_pair->first;
+                auto new_files = class_pair->second;
+                for (auto &new_class: new_classes) {
+                    if (classes.count(new_class.first)) {
+                        std::cerr << "Error! Class \"" << new_class.first
+                                  << "\" defined multiple times!\n";
+                        return 1;
+                    }
+                    classes[new_class.first] = new_class.second;
+                }
+                directory = to_read.substr(0, to_read.find_last_of("/\\") + 1);
+                for (auto &file: new_files) {
+                    included_files.push_back(directory + file);
+                }
+                already_read.insert(to_read);
+            }
+        }
     }
-    if (check_inheritance(*classes)) {
+    if (check_inheritance(classes)) {
         return 1;
     }
     if (not minify_code or convert_code) {
-        for (auto &class_info: *classes) {
-            class_info.second.handle_inheritance(*classes);
+        for (auto &class_info: classes) {
+            class_info.second.handle_inheritance(classes);
         }
     }
-    if (not classes->at("M").has_function("m")) {
+    if (minify_code or convert_code) {
+        std::cout << get_minified_source(classes, width, minify_code, convert_code);
+        return 0;
+    } else if (classes.count("M") == 0) {
+        std::cerr << "Error! Class \"M\" is not defined!\n";
+        return 1;
+    } else if (not classes["M"].has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
-    } else if (minify_code or convert_code) {
-        std::cout << get_minified_source(*classes, width, minify_code, convert_code);
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;
         InstanceManager manager{stack, globals};
 
-        globals.emplace("_Main", manager.new_instance(classes->at("M")));
+        globals.emplace("_Main", manager.new_instance(classes["M"]));
         auto main_obj = *globals.at("_Main").get_instance();
 
-        if (classes->at("M").has_function("c__")) {
+        if (classes["M"].has_function("c__")) {
             auto ctor = main_obj->get_func("c__");
-            if (ctor->execute(manager, *classes, stack, globals)) {
+            if (ctor->execute(manager, classes, stack, globals)) {
                 return 1;
             }
         }
         auto main_func = main_obj->get_func("m");
-        if (main_func->execute(manager, *classes, stack, globals)) {
+        if (main_func->execute(manager, classes, stack, globals)) {
             return 1;
         } else {
             return 0;
