@@ -68,9 +68,9 @@ int main(int argc, char *argv[]) {
     if (filename == "") {
         print_help(argv[0]);
         return 1;
-    } else if (width != 0 and not minify_code) {
+    } else if (width != 0 and not (minify_code or convert_code)) {
         std::cerr << "Error! Width command-line parameter specified without"
-                  << " --minify!\n";
+                  << " --minify or --convert!\n";
         return 1;
     }
 
