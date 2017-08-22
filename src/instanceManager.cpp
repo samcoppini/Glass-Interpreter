@@ -23,8 +23,7 @@ void InstanceManager::new_scope(Instance *cur_instance,
     locals.push_back(new_locals);
 }
 
-// Removes the variables from the current scope from the managed variables,
-// and performs garbage collection
+// Removes the variables from the current scope from the managed variables
 void InstanceManager::unwind_scope() {
     executing_objects.pop_back();
     locals.pop_back();
@@ -54,7 +53,7 @@ void InstanceManager::collect_garbage() {
     // The queue of instances to be marked and saved from being collected
     std::queue<Instance *> queue;
 
-    // Adds all the local
+    // Adds all the local variables
     for (auto &local_vars: locals) {
         for (auto var: *local_vars) {
             if (auto inst = var.second.get_instance()) {
