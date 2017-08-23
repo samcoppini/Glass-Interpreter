@@ -13,7 +13,7 @@ class Class {
 
     public:
         bool add_function(const std::string &name, const CommandList &commands);
-        bool add_parent(const std::string class_name);
+        bool add_parent(const std::string &class_name);
         bool has_function(const std::string &name) const;
         CommandList &get_function(const std::string &name);
         void handle_inheritance(std::map<std::string, Class> &classes);

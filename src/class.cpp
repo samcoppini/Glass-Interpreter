@@ -17,7 +17,7 @@ bool Class::add_function(const std::string &name, const CommandList &commands) {
 
 // Adds a parent to a class, unless the class already inherits from the given
 // class. Returns if the class already inherits from the given class
-bool Class::add_parent(const std::string class_name) {
+bool Class::add_parent(const std::string &class_name) {
     for (const auto &parent: parents) {
         if (parent == class_name) {
             return true;
