@@ -60,8 +60,11 @@ int main(int argc, char *argv[]) {
             std::cerr << "Error! Invalid command-line argument \""
                       << arg << "\"!\n";
             return 1;
-        } else {
+        } else if (filename.empty()) {
             filename = arg;
+        } else {
+            std::cerr << "Error! Multiple files provided!\n";
+            return 1;
         }
     }
 
