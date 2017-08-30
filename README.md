@@ -1,6 +1,6 @@
 Glass Interpreter
 =================
-An interpreter written in C++ for the esoteric programming language, [Glass](https://esolangs.org/wiki/Glass).
+An interpreter written in C++ for the esoteric programming language, [Glass](https://esolangs.org/wiki/Glass). It offers many extensions and improvements compared to the reference interpreter. See [notes.md](./notes.md) for a list of the differences from the reference implementation.
 
 ## Usage:
     usage: glass glass_file [args...]
