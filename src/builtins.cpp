@@ -7,45 +7,47 @@
 #include <iostream>
 #include <optional>
 
+const std::map<Builtin, std::pair<std::string, std::string>> BUILTIN_INFO = {
+    {Builtin::InputLine,          {"I", "l"}},
+    {Builtin::InputChar,          {"I", "c"}},
+    {Builtin::InputEof,           {"I", "e"}},
+    {Builtin::MathAdd,            {"A", "a"}},
+    {Builtin::MathSub,            {"A", "s"}},
+    {Builtin::MathMult,           {"A", "m"}},
+    {Builtin::MathDiv,            {"A", "d"}},
+    {Builtin::MathMod,            {"A", "m"}},
+    {Builtin::MathFloor,          {"A", "f"}},
+    {Builtin::MathEqual,          {"A", "e"}},
+    {Builtin::MathNotEqual,       {"A", "ne"}},
+    {Builtin::MathLessThan,       {"A", "lt"}},
+    {Builtin::MathLessOrEqual,    {"A", "le"}},
+    {Builtin::MathGreaterThan,    {"A", "gt"}},
+    {Builtin::MathGreaterOrEqual, {"A", "ge"}},
+    {Builtin::OutputStr,          {"O", "o"}},
+    {Builtin::OutputNumber,       {"O", "on"}},
+    {Builtin::StrLength,          {"S", "l"}},
+    {Builtin::StrIndex,           {"S", "i"}},
+    {Builtin::StrReplace,         {"S", "si"}},
+    {Builtin::StrConcatenate,     {"S", "a"}},
+    {Builtin::StrSplit,           {"S", "d"}},
+    {Builtin::StrEqual,           {"S", "e"}},
+    {Builtin::StrNumtoChar,       {"S", "ns"}},
+    {Builtin::StrChartoNum,       {"S", "sn"}},
+    {Builtin::VarNew,             {"V", "n"}},
+    {Builtin::VarDelete,          {"V", "d"}},
+};
+
 std::map<std::string, Class> get_builtins() {
-    Class input;
-    input.add_function("l", {Builtin::InputLine});
-    input.add_function("c", {Builtin::InputChar});
-    input.add_function("e", {Builtin::InputEof});
+    std::map<std::string, Class> builtins = {
+        {"A", {}}, {"I", {}}, {"O", {}}, {"S", {}}, {"V", {}}
+    };
 
-    Class output;
-    output.add_function("o", {Builtin::OutputStr});
-    output.add_function("on", {Builtin::OutputNumber});
+    for (auto &[builtin, builtin_info]: BUILTIN_INFO) {
+        auto &[builtin_class, builtin_name] = builtin_info;
+        builtins[builtin_class].add_function(builtin_name, {builtin});
+    }
 
-    Class math;
-    math.add_function("a", {Builtin::MathAdd});
-    math.add_function("s", {Builtin::MathSub});
-    math.add_function("m", {Builtin::MathMult});
-    math.add_function("d", {Builtin::MathDiv});
-    math.add_function("mod", {Builtin::MathMod});
-    math.add_function("f", {Builtin::MathFloor});
-    math.add_function("e", {Builtin::MathEqual});
-    math.add_function("ne", {Builtin::MathNotEqual});
-    math.add_function("lt", {Builtin::MathLessThan});
-    math.add_function("le", {Builtin::MathLessOrEqual});
-    math.add_function("gt", {Builtin::MathGreaterThan});
-    math.add_function("ge", {Builtin::MathGreaterOrEqual});
-
-    Class string;
-    string.add_function("l", {Builtin::StrLength});
-    string.add_function("i", {Builtin::StrIndex});
-    string.add_function("si", {Builtin::StrReplace});
-    string.add_function("a", {Builtin::StrConcatenate});
-    string.add_function("d", {Builtin::StrSplit});
-    string.add_function("e", {Builtin::StrEqual});
-    string.add_function("ns", {Builtin::StrNumtoChar});
-    string.add_function("sn", {Builtin::StrChartoNum});
-
-    Class vars;
-    vars.add_function("n", {Builtin::VarNew});
-    vars.add_function("d", {Builtin::VarDelete});
-
-    return {{"A", math}, {"I", input}, {"O", output}, {"S", string}, {"V", vars}};
+    return builtins;
 }
 
 // Remove the builtin classes from the given map of classes
@@ -489,35 +491,9 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
 // temp_name is a name to be given that won't conflict with any other
 // names in the source code
 std::string builtin_text(Builtin type, const std::string &temp_name) {
-    std::map<Builtin, std::pair<std::string, std::string>> builtin_info = {
-        {Builtin::InputLine,          {"I", "l"}},
-        {Builtin::InputChar,          {"I", "c"}},
-        {Builtin::InputEof,           {"I", "e"}},
-        {Builtin::MathAdd,            {"M", "a"}},
-        {Builtin::MathSub,            {"M", "s"}},
-        {Builtin::MathMult,           {"M", "m"}},
-        {Builtin::MathDiv,            {"M", "d"}},
-        {Builtin::MathMod,            {"M", "m"}},
-        {Builtin::MathFloor,          {"M", "f"}},
-        {Builtin::MathEqual,          {"M", "e"}},
-        {Builtin::MathNotEqual,       {"M", "(ne)"}},
-        {Builtin::MathLessThan,       {"M", "(lt)"}},
-        {Builtin::MathLessOrEqual,    {"M", "(le)"}},
-        {Builtin::MathGreaterThan,    {"M", "(gt)"}},
-        {Builtin::MathGreaterOrEqual, {"M", "(ge)"}},
-        {Builtin::OutputStr,          {"O", "o"}},
-        {Builtin::OutputNumber,       {"O", "(on)"}},
-        {Builtin::StrLength,          {"S", "l"}},
-        {Builtin::StrIndex,           {"S", "i"}},
-        {Builtin::StrReplace,         {"S", "(si)"}},
-        {Builtin::StrConcatenate,     {"S", "a"}},
-        {Builtin::StrSplit,           {"S", "d"}},
-        {Builtin::StrEqual,           {"S", "e"}},
-        {Builtin::StrNumtoChar,       {"S", "(ns)"}},
-        {Builtin::StrChartoNum,       {"S", "(sn)"}},
-        {Builtin::VarNew,             {"V", "n"}},
-        {Builtin::VarDelete,          {"V", "d"}},
-    };
-    auto [class_name, method_name] = builtin_info[type];
+    auto [class_name, method_name] = BUILTIN_INFO.at(type);
+    if (method_name.size() > 1) {
+        method_name = "(" + method_name + ")";
+    }
     return temp_name + class_name + "!" + temp_name + method_name + ".?";
 }
