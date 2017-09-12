@@ -317,8 +317,7 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file, bool
             if (not func) {
                 return std::nullopt;
             }
-            auto func_name = func->first;
-            auto commands = func->second;
+            auto [func_name, commands] = *func;
             if (new_class.add_function(func_name, commands)) {
                 std::cerr << "Error! \"" << *class_name
                           << "\" has multiple definitions of \""
@@ -382,8 +381,7 @@ std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>>
             if (not class_pair) {
                 return std::nullopt;
             }
-            auto class_name = class_pair->first;
-            auto new_class = class_pair->second;
+            auto [class_name, new_class] = *class_pair;
             if (classes.count(class_name)) {
                 std::cerr << "Error! Class \"" << class_name
                           << "\" defined multiple times!\n";

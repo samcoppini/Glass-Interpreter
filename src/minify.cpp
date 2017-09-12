@@ -40,11 +40,11 @@ std::string escape_string(const std::string &str) {
 // frequently they appear, with the most frequent names being first
 std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
     std::map<std::string, int> name_freqs;
-    for (const auto &class_info: classes) {
-        name_freqs[class_info.first] += 1;
-        for (const auto &func: class_info.second.get_functions()) {
-            name_freqs[func.first] += 1;
-            for (const auto &command: func.second) {
+    for (const auto &[class_name, class_info]: classes) {
+        name_freqs[class_name] += 1;
+        for (const auto &[func_name, func_info]: class_info.get_functions()) {
+            name_freqs[func_name] += 1;
+            for (const auto &command: func_info) {
                 if (command.get_type() == CommandType::LoopBegin or
                     command.get_type() == CommandType::PushName)
                 {
@@ -54,8 +54,8 @@ std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
         }
     }
     std::vector<std::pair<int, std::string>> ordered_names;
-    for (const auto &name: name_freqs) {
-        ordered_names.emplace_back(name.second, name.first);
+    for (const auto &[name_freq, name]: name_freqs) {
+        ordered_names.emplace_back(name, name_freq);
     }
     std::sort(ordered_names.rbegin(), ordered_names.rend());
 
@@ -180,18 +180,18 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
         }
     }
 
-    for (const auto &class_info: classes) {
+    for (const auto &[class_name, class_info]: classes) {
         add_to_source("{");
-        add_to_source(get_name(class_info.first));
+        add_to_source(get_name(class_name));
         if (not convert_code) {
-            for (const auto &parent: class_info.second.get_parents()) {
+            for (const auto &parent: class_info.get_parents()) {
                 add_to_source(get_name(parent));
             }
         }
-        for (const auto &func_info: class_info.second.get_functions()) {
+        for (const auto &[func_name, func_info]: class_info.get_functions()) {
             add_to_source("[");
-            add_to_source(get_name(func_info.first));
-            for (const auto &command: func_info.second) {
+            add_to_source(get_name(func_name));
+            for (const auto &command: func_info) {
                 switch (command.get_type()) {
                     case CommandType::AssignClass:
                         add_to_source("!");

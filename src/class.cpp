@@ -45,11 +45,11 @@ void Class::handle_inheritance(std::map<std::string, Class> &classes) {
         if (classes[parent].parents.size() > 0) {
             classes[parent].handle_inheritance(classes);
         }
-        for (const auto &func: classes[parent].functions) {
-            if (func.first != "c__" or not functions.count("c__")) {
-                add_function(func.first, func.second);
+        for (const auto &[name, func]: classes[parent].functions) {
+            if (name != "c__" or not functions.count("c__")) {
+                add_function(name, func);
             } else {
-                functions["c__"].insert(functions["c__"].begin(), func.second.begin(), func.second.end());
+                functions["c__"].insert(functions["c__"].begin(), func.begin(), func.end());
             }
         }
     }

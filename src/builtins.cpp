@@ -518,6 +518,6 @@ std::string builtin_text(Builtin type, const std::string &temp_name) {
         {Builtin::VarNew,             {"V", "n"}},
         {Builtin::VarDelete,          {"V", "d"}},
     };
-    auto info = builtin_info[type];
-    return temp_name + info.first + "!" + temp_name + info.second + ".?";
+    auto [class_name, method_name] = builtin_info[type];
+    return temp_name + class_name + "!" + temp_name + method_name + ".?";
 }
