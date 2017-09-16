@@ -15,7 +15,7 @@ const std::map<Builtin, std::pair<std::string, std::string>> BUILTIN_INFO = {
     {Builtin::MathSub,            {"A", "s"}},
     {Builtin::MathMult,           {"A", "m"}},
     {Builtin::MathDiv,            {"A", "d"}},
-    {Builtin::MathMod,            {"A", "m"}},
+    {Builtin::MathMod,            {"A", "mod"}},
     {Builtin::MathFloor,          {"A", "f"}},
     {Builtin::MathEqual,          {"A", "e"}},
     {Builtin::MathNotEqual,       {"A", "ne"}},
