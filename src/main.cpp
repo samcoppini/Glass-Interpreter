@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (filename == "") {
+    if (filename.empty()) {
         print_help(argv[0]);
         return 1;
     } else if (width != 0 and not (minify_code or convert_code)) {
