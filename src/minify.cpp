@@ -191,6 +191,8 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
         for (const auto &[func_name, func_info]: class_info.get_functions()) {
             add_to_source("[");
             add_to_source(get_name(func_name));
+
+            std::optional<Command> last_command;
             for (const auto &command: func_info) {
                 switch (command.get_type()) {
                     case CommandType::AssignClass:
@@ -233,9 +235,19 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                         add_to_source(",");
                         break;
 
-                    case CommandType::PushName:
-                        add_to_source(get_name(command.get_string()));
+                    case CommandType::PushName: {
+                        auto name = command.get_string();
+                        if (minify_code and last_command) {
+                            if (last_command->get_type() == CommandType::PushName) {
+                                if (last_command->get_string() == name) {
+                                    add_to_source("0");
+                                    break;
+                                }
+                            }
+                        }
+                        add_to_source(get_name(name));
                         break;
+                    }
 
                     case CommandType::PushNumber:
                         add_to_source("<" + get_number(command.get_number(), false) + ">");
@@ -253,6 +265,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                         add_to_source(builtin_text(command.get_builtin(), "(_t)"));
                         break;
                 }
+                last_command = command;
             }
             add_to_source("]");
         }
