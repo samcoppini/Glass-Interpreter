@@ -359,7 +359,8 @@ std::optional<std::pair<std::string, Class>> get_class(std::ifstream &file, bool
 // Returns a pair of all the classes in the given file, and all the files
 // included by the file. However, if there is a parsing error, this will
 // instead return std::nullopt
-std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>> get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
+std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>>
+get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
     std::ifstream file{filename};
     if (not file.is_open()) {
         std::cerr << "Unable to open \"" << filename << "\".\n";
