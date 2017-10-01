@@ -1,3 +1,4 @@
+#include "compiler.hpp"
 #include "instance.hpp"
 #include "instanceManager.hpp"
 #include "minify.hpp"
@@ -14,6 +15,7 @@ void print_help(const std::string &interpreter_name) {
               << " glass_file [args...]" << "\n";
 
     std::cout << "--convert   Convert glass code with extensions to standard glass\n"
+              << "--compile   Convert the source to a C program\n"
               << "--help      Display this help message\n"
               << "--minify    Outputs a minified version of the source code\n"
               << "--pedantic  Disallow extensions to the base language of Glass\n"
@@ -21,7 +23,7 @@ void print_help(const std::string &interpreter_name) {
 }
 
 int main(int argc, char *argv[]) {
-    std::string filename;
+    std::string filename, out_file;
     bool minify_code = false, pedantic = false, convert_code = false;
     std::size_t width = 0;
 
@@ -33,6 +35,16 @@ int main(int argc, char *argv[]) {
             pedantic = true;
         } else if (arg == "--convert") {
             convert_code = true;
+        } else if (arg == "--compile") {
+            if (i + 1 == argc) {
+                std::cerr << "Error! --compile argument supplied, but no output"
+                          << " file was given!\n";
+                return 1;
+            } else if (not out_file.empty()) {
+                std::cerr << "Error! Multiple compilation targets specified!\n";
+                return 1;
+            }
+            out_file = argv[++i];
         } else if (arg == "--width") {
             if (i + 1 == argc) {
                 std::cerr << "Error! " << arg << " argument supplied, but no"
@@ -74,6 +86,9 @@ int main(int argc, char *argv[]) {
     } else if (width != 0 and not (minify_code or convert_code)) {
         std::cerr << "Error! Width command-line parameter specified without"
                   << " --minify or --convert!\n";
+        return 1;
+    } else if (convert_code and not out_file.empty()) {
+        std::cerr << "Error! Cannot minify and compile code at the same time!\n";
         return 1;
     }
 
@@ -130,6 +145,8 @@ int main(int argc, char *argv[]) {
     } else if (not classes["M"].has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
+    } else if (not out_file.empty()) {
+        return compile_classes(classes, out_file);
     } else {
         std::vector<Variable> stack;
         std::map<std::string, Variable> globals;
