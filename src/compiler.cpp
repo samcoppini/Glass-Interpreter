@@ -485,180 +485,158 @@ void output_commands(std::ofstream &file,
          << "\tstruct Val temp, temp2;\n";
 
     int tab_level = 1;
-    auto add_tabs = [&] () {
+
+    auto print_lines = [&] (const auto &func, const auto &line, const auto &...lines) {
         for (int i = 0; i < tab_level; i++) {
             file << "\t";
         }
+        file << line << "\n";
+        if constexpr (sizeof...(lines) > 0) {
+            func(func, lines...);
+        }
     };
+
+    auto add_lines = [&] (const auto &...args) {
+        print_lines(print_lines, args...);
+    };
+
     for (auto &command: commands) {
         if (command.get_type() == CommandType::LoopEnd) {
             tab_level--;
         }
-        add_tabs();
         switch (command.get_type()) {
             case CommandType::AssignClass:
-                file << "temp = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_NAME || temp.name >= NUM_GLOBAL_VARS)\n";
-                add_tabs();
-                file << "\terror(\"Invalid class name!\\n\");\n";
-                add_tabs();
-                file << "temp2 = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_NAME)\n";
-                add_tabs();
-                file << "\terror(\"Cannot assign to non-name!\\n\");\n";
-                add_tabs();
-                file << "temp.val.ival = factory_funcs[temp.name]();\n";
-                add_tabs();
-                file << "temp.type = TYPE_INST;\n";
-                add_tabs();
-                file << "assign(temp2.name, this, local_vars, &temp);";
+                add_lines(
+                    "temp = stack_pop();",
+                    "if (temp.type != TYPE_NAME || temp.name >= NUM_GLOBAL_VARS)",
+                    "\terror(\"Invalid class name!\\n\");",
+                    "temp2 = stack_pop();",
+                    "if (temp.type != TYPE_NAME)",
+                    "\terror(\"Cannot assign to non-name!\\n\");",
+                    "temp.val.ival = factory_funcs[temp.name]();",
+                    "temp.type = TYPE_INST;",
+                    "assign(temp2.name, this, local_vars, &temp);");
                 break;
 
             case CommandType::AssignSelf:
-                file << "temp = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_NAME)\n";
-                add_tabs();
-                file << "\terror(\"Cannot assign to non-name!\\n\");\n";
-                add_tabs();
-                file << "temp2.type = TYPE_INST, temp2.val.ival = this;\n";
-                add_tabs();
-                file << "assign(temp.name, this, local_vars, &temp2);";
+                add_lines(
+                    "temp = stack_pop();",
+                    "if (temp.type != TYPE_NAME)",
+                    "\terror(\"Cannot assign to non-name!\\n\");",
+                    "temp2.type = TYPE_INST, temp2.val.ival = this;",
+                    "assign(temp.name, this, local_vars, &temp2);");
                 break;
 
             case CommandType::AssignValue:
-                file << "temp = stack_pop(), temp2 = stack_pop();\n";
-                add_tabs();
-                file << "if (temp2.type != TYPE_NAME) {\n";
-                add_tabs();
-                file << "\terror(\"Cannot assign to a non-name!\\n\");\n";
-                add_tabs();
-                file << "}\n";
-                add_tabs();
-                file << "assign(temp2.name, this, local_vars, &temp);";
+                add_lines(
+                    "temp = stack_pop(), temp2 = stack_pop();",
+                    "if (temp2.type != TYPE_NAME) {",
+                    "\terror(\"Cannot assign to a non-name!\\n\");",
+                    "}",
+                    "assign(temp2.name, this, local_vars, &temp);");
                 break;
 
             case CommandType::DupElement:
-                file << "dup((unsigned)" << command.get_number() << ");";
+                add_lines(
+                    "dup((unsigned) " +
+                    std::to_string(command.get_number()) + ");");
                 break;
 
             case CommandType::ExecuteFunc:
-                file << "temp = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_FUNC)\n";
-                add_tabs();
-                file << "\terror(\"Cannot execute non-function!\\n\");\n";
-                add_tabs();
-                file << "if (temp.val.ival->class[temp.name - NUM_GLOBAL_VARS] == NULL)\n";
-                add_tabs();
-                file << "\terror(\"Cannot execute non-existent function!\\n\");\n";
-                add_tabs();
-                file << "(*temp.val.ival->class)[temp.name - NUM_GLOBAL_VARS](temp.val.ival);";
+                add_lines(
+                    "temp = stack_pop();",
+                    "if (temp.type != TYPE_FUNC)",
+                    "\terror(\"Cannot execute non-function!\\n\");",
+                    "if (temp.val.ival->class[temp.name - NUM_GLOBAL_VARS] == NULL)",
+                    "\terror(\"Cannot execute non-existent function!\\n\");",
+                    "(*temp.val.ival->class)"
+                    "[temp.name - NUM_GLOBAL_VARS](temp.val.ival);");
                 break;
 
             case CommandType::GetFunction:
-                file << "temp = stack_pop(), temp2 = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_NAME || temp.name < NUM_GLOBAL_VARS"
-                        "|| temp.name > NUM_GLOBAL_VARS + NUM_CLASS_VARS)\n";
-                add_tabs();
-                file << "\terror(\"Invalid function name!\\n\");\n";
-                add_tabs();
-                file << "if (temp2.type != TYPE_NAME)\n";
-                add_tabs();
-                file << "\terror(\"Cannot retrieve value of non-name!\\n\");\n";
-                add_tabs();
-                file << "temp2 = get(temp2.name, this, local_vars);\n";
-                add_tabs();
-                file << "if (temp2.type != TYPE_INST)\n";
-                add_tabs();
-                file << "\terror(\"Cannot retrieve function of non-instance!\\n\");\n";
-                add_tabs();
-                file << "temp.type = TYPE_FUNC, temp.val.ival = temp2.val.ival;\n";
-                add_tabs();
-                file << "stack_push(&temp);";
+                add_lines(
+                    "temp = stack_pop(), temp2 = stack_pop();",
+                    "if (temp.type != TYPE_NAME || temp.name < NUM_GLOBAL_VARS "
+                    "|| temp.name > NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+                    "\terror(\"Invalid function name!\\n\");",
+                    "if (temp2.type != TYPE_NAME)",
+                    "\terror(\"Cannot retrieve value of non-name!\\n\");",
+                    "temp2 = get(temp2.name, this, local_vars);",
+                    "if (temp2.type != TYPE_INST)",
+                    "\terror(\"Cannot retrieve function of non-instance!\\n\");",
+                    "temp.type = TYPE_FUNC, temp.val.ival = temp2.val.ival;",
+                    "stack_push(&temp);");
                 break;
 
             case CommandType::GetValue:
-                file << "temp = stack_pop();\n";
-                add_tabs();
-                file << "if (temp.type != TYPE_NAME)\n";
-                add_tabs();
-                file << "\terror(\"Cannot retrieve value of a non-name!\\n\");\n";
-                add_tabs();
-                file << "temp = get(temp.name, this, local_vars);\n";
-                add_tabs();
-                file << "stack_push(&temp);";
+                add_lines(
+                    "temp = stack_pop();",
+                    "if (temp.type != TYPE_NAME)",
+                    "\terror(\"Cannot retrieve value of a non-name!\\n\");",
+                    "temp = get(temp.name, this, local_vars);",
+                    "stack_push(&temp);");
                 break;
 
-            case CommandType::LoopBegin:
-                file << "while (";
+            case CommandType::LoopBegin: {
+                std::string new_str = "while (";
                 if (command.get_string()[0] == '_') {
-                    file << "is_true(&local_vars["
-                         << local_indices.at(command.get_string());
+                    new_str += "is_true(&local_vars["
+                               + std::to_string(local_indices.at(command.get_string()));
                 } else if (std::islower(command.get_string()[0])) {
-                    file << "is_true(&this->vars["
-                         << class_indices.at(command.get_string());
+                    new_str += "is_true(&this->vars["
+                               + std::to_string(class_indices.at(command.get_string()));
                 } else {
-                    file << "is_true(&global_vars["
-                         << global_indices.at(command.get_string());
+                    new_str += "is_true(&global_vars["
+                               + std::to_string(global_indices.at(command.get_string()));
                 }
-                file <<  "])) {";
+                add_lines(new_str + "])) {");
                 tab_level++;
                 break;
+            }
 
             case CommandType::LoopEnd:
-                file << "}";
+                add_lines("}");
                 break;
 
             case CommandType::PopStack:
-                file << "stack_pop();";
+                add_lines("stack_pop();");
                 break;
 
             case CommandType::PushName:
-                file << "temp.name = N_" << command.get_string()
-                     << ", temp.type = TYPE_NAME;\n";
-                add_tabs();
-                file << "stack_push(&temp);";
+                add_lines("temp.name = N_" + command.get_string() + ";",
+                          "temp.type = TYPE_NAME;",
+                          "stack_push(&temp);");
                 break;
 
             case CommandType::PushNumber:
-                file << "temp.val.dval = " << command.get_number()
-                     << ", temp.type = TYPE_NUM;\n";
-                add_tabs();
-                file << "stack_push(&temp);";
+                add_lines(
+                    "temp.val.dval = " +
+                    std::to_string(command.get_number()) + ";",
+                    "temp.type = TYPE_NUM;",
+                    "stack_push(&temp);");
                 break;
 
             case CommandType::PushString:
-                file << "temp.type = TYPE_STR, temp.val.sval = strdup(\""
-                     << escape_str(command.get_string()) << "\");\n";
-                add_tabs();
-                file << "stack_push(&temp);";
+                add_lines(
+                    "temp.type = TYPE_STR, temp.val.sval = strdup(\""
+                    + escape_str(command.get_string()) + "\");",
+                    "stack_push(&temp);"
+                );
                 break;
 
             case CommandType::Return:
-                file << "return;";
+                add_lines("return;");
                 break;
 
-            case CommandType::BuiltinFunction: {
-                bool is_first = true;
+            case CommandType::BuiltinFunction:
                 for (auto &line: BUILTIN_IMPLS.at(command.get_builtin())) {
-                    if (is_first) {
-                        is_first = false;
-                    } else {
-                        file << "\n";
-                        add_tabs();
-                    }
-                    file << line;
+                    add_lines(line);
                 }
-            }
+                break;
 
             default:
                 break;
         }
-        file << "\n";
     }
 }
 
