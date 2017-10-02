@@ -67,7 +67,7 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
         case Builtin::InputLine: {
             std::string str;
             std::getline(std::cin, str);
-            stack.emplace_back(VarType::String, str);
+            stack.emplace_back(VarType::String, str + '\n');
             break;
         }
 
