@@ -44,10 +44,10 @@ const std::string COMPILED_CODE_DEFS[] = {
     "",
     "struct Val global_vars[NUM_GLOBAL_VARS];",
     "",
-    "struct Stack {",
+    "struct DynamicArray {",
     "    struct Val *elems;",
     "    size_t allocated, length;",
-    "} stack;",
+    "} stack, dynamic_vars;",
     "",
     "void error(const char *msg) {",
     "    fprintf(stderr, msg);",
@@ -56,8 +56,11 @@ const std::string COMPILED_CODE_DEFS[] = {
     "",
     "void init_stack() {",
     "    stack.elems = malloc(sizeof(struct Val) * 16);",
+    "    dynamic_vars.elems = malloc(sizeof(struct Val) * 16);",
     "    stack.allocated = 16;",
+    "    dynamic_vars.allocated = 16;",
     "    stack.length = 0;",
+    "    dynamic_vars.length = 0;",
     "}",
     "",
     "void stack_push(struct Val *val) {",
@@ -87,8 +90,10 @@ const std::string COMPILED_CODE_DEFS[] = {
     "        global_vars[name] = *new_val;",
     "    else if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
     "        this->vars[name - NUM_GLOBAL_VARS] = *new_val;",
-    "    else",
+    "    else if (name < MIN_DYNAMIC_VAR)",
     "        locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS] = *new_val;",
+    "    else",
+    "        dynamic_vars.elems[name - MIN_DYNAMIC_VAR] = *new_val;",
     "}",
     "",
     "struct Val get(enum Name name, struct Instance *this, struct Val *locals) {",
@@ -96,8 +101,10 @@ const std::string COMPILED_CODE_DEFS[] = {
     "        return global_vars[name];",
     "    else if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
     "        return this->vars[name - NUM_GLOBAL_VARS];",
-    "    else",
+    "    else if (name < MIN_DYNAMIC_VAR)",
     "        return locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
+    "    else",
+    "        return dynamic_vars.elems[name - MIN_DYNAMIC_VAR];",
     "}",
     "",
     "void dup(unsigned index) {",
@@ -299,10 +306,22 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "stack_push(&temp2);"
     }},
     {Builtin::VarNew, {
-
+        "if (dynamic_vars.length == dynamic_vars.allocated) {",
+        "\tdynamic_vars.allocated <<= 1;",
+        "\tdynamic_vars.elems = realloc(dynamic_vars.elems,"
+        " sizeof(struct Val) * dynamic_vars.allocated);",
+        "}",
+        "temp.type = TYPE_NAME, temp.name = MIN_DYNAMIC_VAR + dynamic_vars.length;",
+        "dynamic_vars.elems[dynamic_vars.length++].type = TYPE_UNDEFINED;",
+        "stack_push(&temp);"
     }},
     {Builtin::VarDelete, {
-
+        "temp = stack_pop();",
+        "if (temp.type != TYPE_NAME)",
+        "\terror(\"Error! Cannot delete non-name!\\n\");",
+        "if (temp.name < MIN_DYNAMIC_VAR)",
+        "\terror(\"Cannot delete non-generated name!\\n\");",
+        "dynamic_vars.elems[temp.name - MIN_DYNAMIC_VAR].type = TYPE_UNDEFINED;"
     }}
 }};
 
@@ -381,7 +400,8 @@ void output_name_enums(std::ofstream &file,
 
     file << "\tNUM_GLOBAL_VARS = " << global_vars.size() << ",\n"
          << "\tNUM_CLASS_VARS = " << class_vars.size() << ",\n"
-         << "\tNUM_LOCAL_VARS = " << std::max<int>(1, local_vars.size())
+         << "\tNUM_LOCAL_VARS = " << std::max<int>(1, local_vars.size()) << ",\n"
+         << "\tMIN_DYNAMIC_VAR = NUM_GLOBAL_VARS + NUM_CLASS_VARS + NUM_LOCAL_VARS"
          << "\n};\n\n";
 }
 
@@ -574,6 +594,8 @@ void output_commands(std::ofstream &file,
                     "if (temp.type != TYPE_NAME)",
                     "\terror(\"Cannot retrieve value of a non-name!\\n\");",
                     "temp = get(temp.name, this, local_vars);",
+                    "if (temp.type == TYPE_UNDEFINED)",
+                    "\terror(\"Error! Cannot retrieve undefined value!\\n\");",
                     "stack_push(&temp);");
                 break;
 
