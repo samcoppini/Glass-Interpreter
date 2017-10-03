@@ -122,7 +122,19 @@ const std::string COMPILED_CODE_DEFS[] = {
 // Code used to implement the builtin functions
 const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
     {Builtin::InputLine, {
-
+        "int c, allocated = 32, i = 0;"
+        "temp.type = TYPE_STR, temp.val.sval = malloc(allocated + 1);",
+        "while ((c = getchar()) != EOF) {",
+        "\ttemp.val.sval[i++] = c;",
+        "\tif (i == allocated) {",
+        "\t\tallocated <<= 1;",
+        "\t\ttemp.val.sval = realloc(temp.val.sval, allocated + 1);",
+        "\t}",
+        "\tif (c == '\\n')",
+        "\t\tbreak;",
+        "}",
+        "temp.val.sval[i] = '\\0';",
+        "stack_push(&temp);"
     }},
     {Builtin::InputChar, {
         "temp.type = TYPE_STR, temp.val.sval = malloc(2);",
