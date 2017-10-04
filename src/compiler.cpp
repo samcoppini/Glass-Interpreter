@@ -27,10 +27,15 @@ const std::string COMPILED_CODE_DEFS[] = {
     "    TYPE_FUNC",
     "};",
     "",
+    "struct String {",
+    "    char *str;",
+    "    int ref_count;",
+    "};",
+    "",
     "struct Val {",
     "    union vals {",
     "        double dval;",
-    "        char *sval;",
+    "        struct String *sval;",
     "        struct Instance *ival;",
     "    } val;",
     "    enum Name name;",
@@ -81,65 +86,119 @@ const std::string COMPILED_CODE_DEFS[] = {
     "    return stack.elems[--stack.length];",
     "}",
     "",
-    "char *strdup(const char *str) {",
-    "    return strcpy(malloc(strlen(str) + 1), str);",
+    "struct String *copy_str(const char *str) {",
+    "    struct String *new_str = malloc(sizeof(*new_str));",
+    "    new_str->str = strcpy(malloc(strlen(str) + 1), str);",
+    "    new_str->ref_count = 1;",
+    "    return new_str;",
+    "}",
+    "",
+    "struct String *new_str(int len) {",
+    "    struct String *new_str = malloc(sizeof(*new_str));",
+    "    new_str->str = malloc(len + 1);",
+    "    new_str->ref_count = 1;",
+    "    return new_str;",
+    "}",
+    "",
+    "void release_str(struct String *str) {",
+    "    str->ref_count--;",
+    "    if (str->ref_count == 0) {",
+    "        free(str->str);",
+    "        free(str);",
+    "    }",
+    "}",
+    "void release_val(struct Val *val) {",
+    "    if (val->type == TYPE_STR)",
+    "        release_str(val->val.sval);",
+    "}",
+    "",
+    "void cleanup() {",
+    "    int i;",
+    "    for (i = 0; i < stack.length; i++) {",
+    "        release_val(stack.elems + i);",
+    "    }",
+    "    for (i = 0; i < dynamic_vars.length; i++) {",
+    "        release_val(dynamic_vars.elems + i);",
+    "    }",
+    "    for (i = 0; i < NUM_GLOBAL_VARS; i++) {",
+    "        release_val(global_vars + i);",
+    "    }",
+    "    free(stack.elems);",
+    "    free(dynamic_vars.elems);",
+    "}",
+    "",
+    "void leave_scope(struct Val *locals) {",
+    "    int i;",
+    "    for (i = 0; i < NUM_LOCAL_VARS; i++) {",
+    "        release_val(locals + i);",
+    "    }",
     "}",
     "",
     "void assign(enum Name name, struct Instance *this, struct Val *locals, struct Val *new_val) {",
+    "    struct Val *old_val;",
     "    if (name < NUM_GLOBAL_VARS)",
-    "        global_vars[name] = *new_val;",
+    "        old_val = &global_vars[name];",
     "    else if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
-    "        this->vars[name - NUM_GLOBAL_VARS] = *new_val;",
+    "        old_val = &this->vars[name - NUM_GLOBAL_VARS];",
     "    else if (name < MIN_DYNAMIC_VAR)",
-    "        locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS] = *new_val;",
+    "        old_val = &locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
     "    else",
-    "        dynamic_vars.elems[name - MIN_DYNAMIC_VAR] = *new_val;",
+    "        old_val = &dynamic_vars.elems[name - MIN_DYNAMIC_VAR];",
+    "    if (old_val->type == TYPE_STR)",
+    "        release_str(old_val->val.sval);",
+    "    *old_val = *new_val;",
     "}",
     "",
     "struct Val get(enum Name name, struct Instance *this, struct Val *locals) {",
+    "    struct Val val;",
     "    if (name < NUM_GLOBAL_VARS)",
-    "        return global_vars[name];",
+    "        val = global_vars[name];",
     "    else if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
-    "        return this->vars[name - NUM_GLOBAL_VARS];",
+    "        val = this->vars[name - NUM_GLOBAL_VARS];",
     "    else if (name < MIN_DYNAMIC_VAR)",
-    "        return locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
+    "        val = locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
     "    else",
-    "        return dynamic_vars.elems[name - MIN_DYNAMIC_VAR];",
+    "        val = dynamic_vars.elems[name - MIN_DYNAMIC_VAR];",
+    "    if (val.type == TYPE_STR)",
+    "        val.val.sval->ref_count++;",
+    "    return val;",
     "}",
     "",
     "void dup(unsigned index) {",
     "    if (index >= stack.length)",
     "        error(\"Error! Tried to duplicate out-of-bounds stack element!\\n\");",
     "    stack_push(stack.elems + stack.length - index - 1);",
+    "    if (stack.elems[stack.length - 1].type == TYPE_STR)",
+    "        stack.elems[stack.length - 1].val.sval->ref_count++;",
     "}",
     "",
     "int is_true(struct Val *val) {",
     "    return (val->type == TYPE_NUM && val->val.dval != 0.0) ||",
-    "           (val->type == TYPE_STR && strlen(val->val.sval) > 1);",
+    "           (val->type == TYPE_STR && val->val.sval->str[0] != '\\0');",
     "}"
 };
 
 // Code used to implement the builtin functions
 const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
     {Builtin::InputLine, {
-        "int c, allocated = 32, i = 0;"
-        "temp.type = TYPE_STR, temp.val.sval = malloc(allocated + 1);",
+        "int c, allocated = 32, i = 0;",
+        "temp.type = TYPE_STR, temp.val.sval = new_str(allocated);",
         "while ((c = getchar()) != EOF) {",
-        "\ttemp.val.sval[i++] = c;",
+        "\ttemp.val.sval->str[i++] = c;",
         "\tif (i == allocated) {",
         "\t\tallocated <<= 1;",
-        "\t\ttemp.val.sval = realloc(temp.val.sval, allocated + 1);",
+        "\t\ttemp.val.sval->str = realloc(temp.val.sval->str, allocated + 1);",
         "\t}",
         "\tif (c == '\\n')",
         "\t\tbreak;",
         "}",
-        "temp.val.sval[i] = '\\0';",
+        "temp.val.sval->str[i] = '\\0';",
         "stack_push(&temp);"
     }},
     {Builtin::InputChar, {
-        "temp.type = TYPE_STR, temp.val.sval = malloc(2);",
-        "temp.val.sval[0] = getchar();",
-        "temp.val.sval[1] = '\\0';",
+        "temp.type = TYPE_STR, temp.val.sval = new_str(2);",
+        "temp.val.sval->str[0] = getchar();",
+        "temp.val.sval->str[1] = '\\0';",
         "stack_push(&temp);"
     }},
     {Builtin::InputEof, {
@@ -233,9 +292,10 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
     {Builtin::OutputStr, {
         "temp = stack_pop();",
         "if (temp.type == TYPE_STR)",
-        "\tprintf(\"%s\", temp.val.sval);",
+        "\tprintf(\"%s\", temp.val.sval->str);",
         "else",
-        "\terror(\"Cannot output non-string!\\n\");"
+        "\terror(\"Cannot output non-string!\\n\");",
+        "release_str(temp.val.sval);"
     }},
     {Builtin::OutputNumber, {
         "temp = stack_pop();",
@@ -246,9 +306,10 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "temp = stack_pop();",
         "if (temp.type != TYPE_STR)",
         "\terror(\"Error! Cannot get the length of a non-string!\\n\");",
-        "temp.val.dval = (double) strlen(temp.val.sval);",
-        "temp.type = TYPE_NUM;",
-        "stack_push(&temp);"
+        "temp2.val.dval = (double) strlen(temp.val.sval->str);",
+        "temp2.type = TYPE_NUM;",
+        "stack_push(&temp2);",
+        "release_str(temp.val.sval);"
     }},
     {Builtin::StrIndex, {
         "int index;",
@@ -256,27 +317,43 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "if (temp.type != TYPE_NUM || temp2.type != TYPE_STR)",
         "\terror(\"Error! Wrong types for string indexing!\\n\");",
         "index = (int) temp.val.dval;",
-        "temp.val.sval = malloc(sizeof(2));",
-        "temp.val.sval[1] = '\\0';",
-        "temp.val.sval[0] = temp2.val.sval[index];",
+        "temp.val.sval = new_str(2);",
+        "temp.val.sval->str[1] = '\\0';",
+        "temp.val.sval->str[0] = temp2.val.sval->str[index];",
         "temp.type = TYPE_STR;",
-        "stack_push(&temp);"
+        "stack_push(&temp);",
+        "release_str(temp2.val.sval);"
     }},
     {Builtin::StrReplace, {
         "struct Val temp3;",
         "temp = stack_pop(), temp2 = stack_pop(), temp3 = stack_pop();",
         "if (temp.type != TYPE_STR || temp2.type != TYPE_NUM || temp3.type != TYPE_STR)",
         "\terror(\"Wrong types for string replace operation!\\n\");",
-        "temp3.val.sval[(int) temp2.val.dval] = temp.val.sval[0];",
+        "if (temp3.val.sval->ref_count > 1) {",
+        "\trelease_str(temp3.val.sval);",
+        "\ttemp3.val.sval = copy_str(temp3.val.sval->str);",
+        "}",
+        "temp3.val.sval->str[(int) temp2.val.dval] = temp.val.sval->str[0];",
+        "release_str(temp.val.sval);",
         "stack_push(&temp3);"
     }},
     {Builtin::StrConcatenate, {
         "temp = stack_pop(), temp2 = stack_pop();",
         "if (temp.type != TYPE_STR || temp2.type != TYPE_STR)",
         "\terror(\"Error! Cannot concatenate non-strings!\\n\");",
-        "temp2.val.sval = realloc(temp2.val.sval, strlen(temp2.val.sval) + strlen(temp.val.sval) + 1);",
-        "strcat(temp2.val.sval, temp.val.sval);",
-        "stack_push(&temp2);"
+        "if (temp2.val.sval->ref_count == 1) {",
+        "\ttemp2.val.sval->str = realloc(temp2.val.sval->str, "
+        "strlen(temp2.val.sval->str) + strlen(temp.val.sval->str) + 1);",
+        "} else {",
+        "\tstruct String *old_str = temp2.val.sval;",
+        "\ttemp2.val.sval = new_str(strlen(old_str->str) +"
+        "strlen(temp.val.sval->str) + 1);",
+        "\tstrcpy(temp2.val.sval->str, old_str->str);",
+        "\trelease_str(old_str);",
+        "}",
+        "strcat(temp2.val.sval->str, temp.val.sval->str);",
+        "stack_push(&temp2);",
+        "release_str(temp.val.sval);"
     }},
     {Builtin::StrSplit, {
         "unsigned index;",
@@ -284,28 +361,37 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "if (temp.type != TYPE_NUM || temp2.type != TYPE_STR)",
         "\terror(\"Wrong types for string split operation!\\n\");",
         "index = (unsigned) temp.val.dval;",
-        "temp.val.sval = malloc(strlen(temp2.val.sval) - index + 1);",
-        "strcpy(temp.val.sval, temp2.val.sval + index);",
-        "temp2.val.sval[index] = '\\0';",
+        "temp.val.sval = new_str(strlen(temp2.val.sval->str) - index);",
+        "strcpy(temp.val.sval->str, temp2.val.sval->str + index);",
+        "if (temp2.val.sval->ref_count > 1) {",
+        "\tstruct String *old_str = temp2.val.sval;",
+        "\ttemp2.val.sval = copy_str(old_str->str);",
+        "\trelease_str(old_str);",
+        "}",
+        "temp2.val.sval->str[index] = '\\0';",
         "temp.type = TYPE_STR;",
         "stack_push(&temp2);",
         "stack_push(&temp);"
     }},
     {Builtin::StrEqual, {
+        "double result;",
         "temp = stack_pop(), temp2 = stack_pop();",
         "if (temp.type != TYPE_STR || temp2.type != TYPE_STR)",
         "\terror(\"Error! Cannot compare non-strings!\\n\");",
-        "temp.val.dval = (strcmp(temp.val.sval, temp2.val.sval) == 0 ? 1.0: 0.0);",
+        "result = (strcmp(temp.val.sval->str, temp2.val.sval->str) == 0 ? 1.0: 0.0);",
+        "release_str(temp.val.sval);",
+        "release_str(temp2.val.sval);",
         "temp.type = TYPE_NUM;",
+        "temp.val.dval = result;",
         "stack_push(&temp);"
     }},
     {Builtin::StrNumtoChar, {
         "temp = stack_pop();",
         "if (temp.type != TYPE_NUM)",
         "\terror(\"Cannot convert non-number to string!\\n\");",
-        "temp2.val.sval = malloc(2);",
-        "temp2.val.sval[0] = (char) temp.val.dval;",
-        "temp2.val.sval[1] = '\\0';",
+        "temp2.val.sval = new_str(2);",
+        "temp2.val.sval->str[0] = (char) temp.val.dval;",
+        "temp2.val.sval->str[1] = '\\0';",
         "temp2.type = TYPE_STR;",
         "stack_push(&temp2);"
     }},
@@ -313,9 +399,10 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "temp = stack_pop();",
         "if (temp.type != TYPE_STR)",
         "\terror(\"Cannot convert non-string to number!\\n\");",
-        "temp2.val.dval = (double) temp.val.sval[0];",
+        "temp2.val.dval = (double) temp.val.sval->str[0];",
         "temp2.type = TYPE_NUM;",
-        "stack_push(&temp2);"
+        "stack_push(&temp2);",
+        "release_str(temp.val.sval);"
     }},
     {Builtin::VarNew, {
         "if (dynamic_vars.length == dynamic_vars.allocated) {",
@@ -633,7 +720,9 @@ void output_commands(std::ofstream &file,
                 break;
 
             case CommandType::PopStack:
-                add_lines("stack_pop();");
+                add_lines("temp = stack_pop();",
+                          "if (temp.type == TYPE_STR)",
+                           "\trelease_str(temp.val.sval);");
                 break;
 
             case CommandType::PushName:
@@ -652,14 +741,15 @@ void output_commands(std::ofstream &file,
 
             case CommandType::PushString:
                 add_lines(
-                    "temp.type = TYPE_STR, temp.val.sval = strdup(\""
+                    "temp.type = TYPE_STR, temp.val.sval = copy_str(\""
                     + escape_str(command.get_string()) + "\");",
                     "stack_push(&temp);"
                 );
                 break;
 
             case CommandType::Return:
-                add_lines("return;");
+                add_lines("leave_scope(local_vars);",
+                          "return;");
                 break;
 
             case CommandType::BuiltinFunction:
@@ -672,6 +762,7 @@ void output_commands(std::ofstream &file,
                 break;
         }
     }
+    add_lines("leave_scope(local_vars);");
 }
 
 // Outputs all of the functions necessary for implementing the all of
@@ -719,6 +810,7 @@ void output_main_func(std::ofstream &file) {
     file << "\nint main() {\n"
          << "\tstruct Instance *main_obj;\n"
          << "\tinit_stack();\n"
+         << "\tatexit(cleanup);\n"
          << "\tmain_obj = new_C_M();\n"
          << "\tF_M_m(main_obj);\n"
          << "}\n";
