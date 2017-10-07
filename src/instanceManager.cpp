@@ -82,6 +82,11 @@ void InstanceManager::collect_garbage() {
         }
     }
 
+    // Adds all of the objects executing functions to the queue
+    for (auto &inst: executing_objects) {
+        queue.push(inst);
+    }
+
     // Goes through the queue, marking every instance as being safe from
     // garbage collection, and adding everything it points to to the queue
     while (not queue.empty()) {
