@@ -78,7 +78,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "}",
     "",
     "void *array_pop(struct DynamicArray *array) {",
-    "\treturn ((char *) stack->elems) + (stack->el_size * --stack->num_elems);",
+    "\treturn ((char *) array->elems) + (array->el_size * --array->num_elems);",
     "}",
     "",
     "void init() {",
