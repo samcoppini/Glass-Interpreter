@@ -10,13 +10,16 @@
 // Code that is included in every compiled source
 const std::string COMPILED_CODE_DEFS[] = {
     "#include <math.h>",
+    "#include <stddef.h>",
     "#include <stdlib.h>",
     "#include <stdio.h>",
     "#include <string.h>",
     "",
-    "struct Instance;",
+    "typedef char bool;",
+    "#define true ((bool) 1)",
+    "#define false ((bool) 0)",
     "",
-    "typedef void (*(Class)[NUM_CLASS_VARS])(struct Instance *);",
+    "typedef void (*(Class)[NUM_CLASS_VARS])(size_t);",
     "",
     "enum Type {",
     "\tTYPE_UNDEFINED,",
@@ -36,7 +39,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\tunion vals {",
     "\t\tdouble dval;",
     "\t\tstruct String *sval;",
-    "\t\tstruct Instance *ival;",
+    "\t\tsize_t ival;",
     "\t} val;",
     "\tenum Name name;",
     "\tenum Type type;",
@@ -52,7 +55,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "struct DynamicArray {",
     "\tvoid *elems;",
     "\tsize_t num_elems, num_allocated, el_size;",
-    "} *stack, *dynamic_vars;",
+    "} *stack, *dynamic_vars, *instances, *insts_used, *this_objs, *locals_list;",
     "",
     "void error(const char *msg) {",
     "\tfprintf(stderr, msg);",
@@ -82,8 +85,16 @@ const std::string COMPILED_CODE_DEFS[] = {
     "}",
     "",
     "void init() {",
+    "\tint i;",
     "\tstack = new_array(sizeof(struct Val), 16);",
     "\tdynamic_vars = new_array(sizeof(struct Val), 4);",
+    "\tinstances = new_array(sizeof(struct Instance), 256);",
+    "\tinsts_used = new_array(sizeof(bool), instances->num_allocated);",
+    "\tthis_objs = new_array(sizeof(size_t), 16);",
+    "\tlocals_list = new_array(sizeof(struct Val *), 16);",
+    "\tfor (i = 0; i < insts_used->num_allocated; i++) {",
+    "\t\t((bool *) insts_used->elems)[i] = false;",
+    "\t}",
     "}",
     "",
     "void stack_push(struct Val *val) {",
@@ -118,41 +129,156 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\t\tfree(str);",
     "\t}",
     "}",
-    "void release_val(struct Val *val) {",
-    "\tif (val->type == TYPE_STR)",
-    "\t\trelease_str(val->val.sval);",
-    "}",
     "",
     "void cleanup() {",
-    "\tint i;",
+    "\tint i, j;",
     "\tfor (i = 0; i < stack->num_elems; i++) {",
-    "\t\trelease_val(((struct Val *) stack->elems) + i);",
+    "\t\tif (((struct Val *) stack->elems)[i].type == TYPE_STR)",
+    "\t\t\trelease_str(((struct Val *) stack->elems)[i].val.sval);",
     "\t}",
     "\tfor (i = 0; i < dynamic_vars->num_elems; i++) {",
-    "\t\trelease_val(((struct Val *) dynamic_vars->elems) + i);",
+    "\t\tif (((struct Val *) dynamic_vars->elems)[i].type == TYPE_STR)",
+    "\t\t\trelease_str(((struct Val *) dynamic_vars->elems)[i].val.sval);",
     "\t}",
     "\tfor (i = 0; i < NUM_GLOBAL_VARS; i++) {",
-    "\t\trelease_val(global_vars + i);",
+    "\t\tif (global_vars[i].type == TYPE_STR)",
+    "\t\t\trelease_str(global_vars[i].val.sval);"
     "\t}",
+    "\tfor (i = 0; i < insts_used->num_allocated; i++) {",
+    "\t\tif (((bool *) insts_used->elems)[i]) {",
+    "\t\t\tstruct Instance *instance = ((struct Instance *) instances->elems) + i;",
+    "\t\t\tfor (j = 0; j < NUM_CLASS_VARS; j++) {",
+    "\t\t\t\tif (instance->vars[j].type == TYPE_STR)",
+    "\t\t\t\t\trelease_str(instance->vars[j].val.sval);",
+    "\t\t\t}",
+    "\t\t}",
+    "\t}"
     "\tfree(stack->elems);",
     "\tfree(dynamic_vars->elems);",
+    "\tfree(instances->elems);",
+    "\tfree(this_objs->elems);",
+    "\tfree(locals_list->elems);",
+    "\tfree(insts_used->elems);",
     "\tfree(stack);",
     "\tfree(dynamic_vars);",
+    "\tfree(instances);",
+    "\tfree(this_objs);",
+    "\tfree(locals_list);",
+    "\tfree(insts_used);",
     "}",
     "",
-    "void leave_scope(struct Val *locals) {",
+    "void enter_scope(size_t this, struct Val *locals) {",
+    "\tarray_add(this_objs, &this);",
+    "\tarray_add(locals_list, &locals);",
+    "}",
+    "",
+    "void leave_scope() {",
     "\tint i;",
+    "\tstruct Val *locals = *((struct Val **) array_pop(locals_list));",
     "\tfor (i = 0; i < NUM_LOCAL_VARS; i++) {",
-    "\t\trelease_val(locals + i);",
+    "\t\tif (locals[i].type == TYPE_STR)",
+    "\t\t\trelease_str(locals[i].val.sval);",
     "\t}",
+    "\tarray_pop(this_objs);",
     "}",
     "",
-    "void assign(enum Name name, struct Instance *this, struct Val *locals, struct Val *new_val) {",
+    "void do_garbage_collection() {",
+    "\tstruct DynamicArray *reachable_stack = new_array(sizeof(size_t), 32);",
+    "\tsize_t i, j, num_used;",
+    "\tfor (i = 0; i < this_objs->num_elems; i++) {",
+    "\t\tarray_add(reachable_stack, ((size_t *) this_objs->elems) + i);",
+    "\t}",
+    "\tfor (i = 0; i < NUM_GLOBAL_VARS; i++) {",
+    "\t\tif (global_vars[i].type == TYPE_INST || global_vars[i].type == TYPE_FUNC)",
+    "\t\t\tarray_add(reachable_stack, &global_vars[i].val.ival);",
+    "\t}",
+    "\tfor (i = 0; i < stack->num_elems; i++) {",
+    "\t\tenum Type type = ((struct Val *) stack->elems)[i].type;",
+    "\t\tif (type == TYPE_FUNC || type == TYPE_INST)",
+    "\t\t\tarray_add(reachable_stack, &(((struct Val *) stack->elems)[i].val.ival));",
+    "\t}",
+    "\tfor (i = 0; i < locals_list->num_elems; i++) {",
+    "\t\tstruct Val *locals = ((struct Val **) locals_list->elems)[i];",
+    "\t\tfor (j = 0; j < NUM_LOCAL_VARS; j++) {",
+    "\t\t\tif (locals[j].type == TYPE_FUNC || locals[j].type == TYPE_INST)",
+    "\t\t\t\tarray_add(reachable_stack, &locals[j].val.ival);",
+    "\t\t}",
+    "\t}",
+    "\tfor (i = 0; i < insts_used->num_allocated; i++) {",
+    "\t\t((bool *) insts_used->elems)[i] = false;",
+    "\t}",
+    "\twhile (reachable_stack->num_elems > 0) {",
+    "\t\tsize_t index = *((size_t *) array_pop(reachable_stack));",
+    "\t\tif (!((bool *) insts_used->elems)[index]) {",
+    "\t\t\tstruct Instance *inst = ((struct Instance *) instances->elems) + index;",
+    "\t\t\t((bool *) insts_used->elems)[index] = true;",
+    "\t\t\tfor (i = 0; i < NUM_CLASS_VARS; i++) {",
+    "\t\t\t\tif (inst->vars[i].type == TYPE_INST || inst->vars[i].type == TYPE_FUNC)",
+    "\t\t\t\t\tarray_add(reachable_stack, &inst->vars[i].val.ival);",
+    "\t\t\t}",
+    "\t\t}",
+    "\t}",
+    "\tnum_used = 0;",
+    "\tfor (i = 0; i < insts_used->num_allocated; i++) {",
+    "\t\tif (((bool *) insts_used->elems)[i]) {",
+    "\t\t\tnum_used++;",
+    "\t\t} else {",
+    "\t\t\tstruct Instance *inst = ((struct Instance *) instances->elems) + i;",
+    "\t\t\tfor (j = 0; j < NUM_CLASS_VARS; j++) {",
+    "\t\t\t\tif (inst->vars[j].type == TYPE_STR) {",
+    "\t\t\t\t\trelease_str(inst->vars[j].val.sval);",
+    "\t\t\t\t}",
+    "\t\t\t}",
+    "\t\t}",
+    "\t}",
+    "\tif (num_used > instances->num_allocated * 0.6) {",
+    "\t\tinstances->num_allocated <<= 1;",
+    "\t\tinstances->elems = realloc(instances->elems,"
+    "instances->num_allocated * sizeof(struct Instance));",
+    "\t\tinsts_used->elems = realloc(insts_used->elems,"
+    "insts_used->num_allocated * sizeof(bool));",
+    "\t\tfor (i = insts_used->num_allocated, insts_used->num_allocated <<= 1;"
+    " i < insts_used->num_allocated; i++) {",
+    "\t\t\t((bool *) insts_used->elems)[i] = false;",
+    "\t\t}",
+    "\t}",
+    "\tfree(reachable_stack->elems);",
+    "\tfree(reachable_stack);",
+    "}",
+    "",
+    "size_t get_free_inst_index() {",
+    "\tstatic struct Instance blank_inst = {",
+    "\t\tNULL, {{0.0, 0, 0}}",
+    "\t};",
+    "\tstatic int cur_inst = 0;",
+    "\twhile (cur_inst < instances->num_allocated) {",
+    "\t\tif (!((bool *) insts_used->elems)[cur_inst]) {",
+    "\t\t\t((bool *) insts_used->elems)[cur_inst] = true;",
+    "\t\t\tmemcpy(((struct Instance *) instances->elems) + cur_inst, "
+    "&blank_inst, sizeof(struct Instance));",
+    "\t\t\treturn cur_inst++;",
+    "\t\t}",
+    "\t\tcur_inst++;",
+    "\t}",
+    "\tdo_garbage_collection();",
+    "\tcur_inst = 0;",
+    "\twhile (((bool *) insts_used->elems)[cur_inst])",
+    "\t\tcur_inst++;",
+    "\tmemcpy(((struct Instance *) instances->elems) + cur_inst, &blank_inst,"
+    "sizeof(struct Instance));",
+    "\treturn cur_inst++;",
+    "}",
+    "",
+    "struct Instance *get_inst(size_t index) {",
+    "\treturn ((struct Instance *) instances->elems) + index;",
+    "}",
+    "",
+    "void assign(enum Name name, size_t this, struct Val *locals, struct Val *new_val) {",
     "\tstruct Val *old_val;",
     "\tif (name < NUM_GLOBAL_VARS)",
     "\t\told_val = &global_vars[name];",
     "\telse if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
-    "\t\told_val = &this->vars[name - NUM_GLOBAL_VARS];",
+    "\t\told_val = &get_inst(this)->vars[name - NUM_GLOBAL_VARS];",
     "\telse if (name < MIN_DYNAMIC_VAR)",
     "\t\told_val = &locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
     "\telse",
@@ -162,12 +288,12 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\t*old_val = *new_val;",
     "}",
     "",
-    "struct Val get(enum Name name, struct Instance *this, struct Val *locals) {",
+    "struct Val get(enum Name name, size_t this, struct Val *locals) {",
     "\tstruct Val val;",
     "\tif (name < NUM_GLOBAL_VARS)",
     "\t\tval = global_vars[name];",
     "\telse if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
-    "\t\tval = this->vars[name - NUM_GLOBAL_VARS];",
+    "\t\tval = get_inst(this)->vars[name - NUM_GLOBAL_VARS];",
     "\telse if (name < MIN_DYNAMIC_VAR)",
     "\t\tval = locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
     "\telse",
@@ -540,8 +666,7 @@ void output_class_defs(std::ofstream &file,
                 } else {
                     file << ",\n     ";
                 }
-                file << "F_" << class_name << "_" << func.first
-                     << "(struct Instance *)";
+                file << "F_" << class_name << "_" << func.first << "(size_t)";
             }
         }
         if (not is_first) {
@@ -566,17 +691,17 @@ void output_class_defs(std::ofstream &file,
         }
         file << "\n};\n\n"
         // Create a factory function for the class
-             << "struct Instance *new_C_" << class_name << "() {\n"
-             << "\tstruct Instance *obj = calloc(1, sizeof(struct Instance));\n"
-             << "\tobj->class = &C_" << class_name << ";\n";
+             << "size_t new_C_" << class_name << "() {\n"
+             << "\tsize_t index = get_free_inst_index();\n"
+             << "\tget_inst(index)->class = &C_" << class_name << ";\n";
         if (class_info.get_functions().count("c__")) {
-            file << "\tF_" << class_name << "_c__(obj);\n";
+            file << "\tF_" << class_name << "_c__(index);\n";
         }
-        file << "\treturn obj;\n}\n";
+        file << "\treturn index;\n}\n";
     }
 
     // Generate a table of the different classes' factory functions
-    file << "\nstruct Instance *(*(factory_funcs)[NUM_GLOBAL_VARS])() = {\n";
+    file << "\nsize_t (*(factory_funcs)[NUM_GLOBAL_VARS])() = {\n";
     bool is_first = true;
     for (auto &name: global_vars) {
         if (is_first) {
@@ -601,6 +726,18 @@ void output_commands(std::ofstream &file,
                      const std::map<std::string, int> &class_indices,
                      const std::map<std::string, int> &local_indices)
 {
+    // If the function is a builtin, just output the definition of
+    // the function from BUILTIN_IMPLS and leave
+    if (commands.size() == 1 and
+        commands[0].get_type() == CommandType::BuiltinFunction)
+    {
+        file << "\tstruct Val temp, temp2;\n";
+        for (auto &line: BUILTIN_IMPLS.at(commands[0].get_builtin())) {
+            file << "\t" << line << "\n";
+        }
+        return;
+    }
+
     // Create a table for storing the local variables, all initialized
     // to be undefined at first
     file << "\tstruct Val local_vars[NUM_LOCAL_VARS] = {";
@@ -615,7 +752,8 @@ void output_commands(std::ofstream &file,
         file << "{0.0, 0, TYPE_UNDEFINED}";
     }
     file << "\n\t};\n"
-         << "\tstruct Val temp, temp2;\n";
+         << "\tstruct Val temp, temp2;\n"
+         << "\tenter_scope(this, local_vars);\n";
 
     int tab_level = 1;
 
@@ -680,9 +818,10 @@ void output_commands(std::ofstream &file,
                     "temp = stack_pop();",
                     "if (temp.type != TYPE_FUNC)",
                     "\terror(\"Cannot execute non-function!\\n\");",
-                    "if (temp.val.ival->class[temp.name - NUM_GLOBAL_VARS] == NULL)",
+                    "if (get_inst(temp.val.ival)->class"
+                    "[temp.name - NUM_GLOBAL_VARS] == NULL)",
                     "\terror(\"Cannot execute non-existent function!\\n\");",
-                    "(*temp.val.ival->class)"
+                    "(*get_inst(temp.val.ival)->class)"
                     "[temp.name - NUM_GLOBAL_VARS](temp.val.ival);");
                 break;
 
@@ -718,7 +857,7 @@ void output_commands(std::ofstream &file,
                     new_str += "is_true(&local_vars["
                                + std::to_string(local_indices.at(command.get_string()));
                 } else if (std::islower(command.get_string()[0])) {
-                    new_str += "is_true(&this->vars["
+                    new_str += "is_true(&get_inst(this)->vars["
                                + std::to_string(class_indices.at(command.get_string()));
                 } else {
                     new_str += "is_true(&global_vars["
@@ -762,21 +901,15 @@ void output_commands(std::ofstream &file,
                 break;
 
             case CommandType::Return:
-                add_lines("leave_scope(local_vars);",
+                add_lines("leave_scope();",
                           "return;");
-                break;
-
-            case CommandType::BuiltinFunction:
-                for (auto &line: BUILTIN_IMPLS.at(command.get_builtin())) {
-                    add_lines(line);
-                }
                 break;
 
             default:
                 break;
         }
     }
-    add_lines("leave_scope(local_vars);");
+    add_lines("leave_scope();");
 }
 
 // Outputs all of the functions necessary for implementing the all of
@@ -811,7 +944,7 @@ void output_functions(std::ofstream &file,
                 continue;
             }
             file << "\nvoid F_" << class_name << "_" << func_name
-                 << "(struct Instance *this) {\n";
+                 << "(size_t this) {\n";
             output_commands(file, commands, global_indices, class_indices,
                             local_indices);
             file << "}\n";
@@ -822,7 +955,7 @@ void output_functions(std::ofstream &file,
 // Outputs the main function, used to start the program
 void output_main_func(std::ofstream &file) {
     file << "\nint main() {\n"
-         << "\tstruct Instance *main_obj;\n"
+         << "\tsize_t main_obj;\n"
          << "\tinit();\n"
          << "\tatexit(cleanup);\n"
          << "\tmain_obj = new_C_M();\n"
