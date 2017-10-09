@@ -23,6 +23,9 @@ Recognizing the value of splitting up code into multiple files, this interpreter
 To disable any extensions to the language, pass the `--pedantic` flag to the interpreter. To convert code using extensions to standard Glass code, simply pass the `--convert` flag to the interpreter.
 
 # Other features
+## Compilation to C
+This interpreter also doubles as a compiler to C89-compatible C. To convert a glass program to C source code, pass the `--compile` flag to the interpreter, followed by the name of the file to output the C source.
+
 ## Minification/Obfuscation
 This interpreter provides the ability to minify/obfuscate Glass programs by passing the `--minify` flag to the interpreter. For example, this code:
 

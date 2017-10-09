@@ -5,6 +5,7 @@ An interpreter written in C++ for the esoteric programming language, [Glass](htt
 ## Usage:
     usage: glass glass_file [args...]
     --convert   Convert glass code with extensions to standard glass
+    --compile   Convert the source to a C program
     --help      Display this help message
     --minify    Outputs a minified version of the source code
     --pedantic  Disallow extensions to the base language of Glass
