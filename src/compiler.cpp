@@ -960,6 +960,7 @@ void output_main_func(std::ofstream &file) {
          << "\tatexit(cleanup);\n"
          << "\tmain_obj = new_C_M();\n"
          << "\tF_M_m(main_obj);\n"
+         << "\treturn 0;\n"
          << "}\n";
 }
 
