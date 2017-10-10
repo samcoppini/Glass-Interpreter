@@ -152,7 +152,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\t\t\t\t\trelease_str(instance->vars[j].val.sval);",
     "\t\t\t}",
     "\t\t}",
-    "\t}"
+    "\t}",
     "\tfree(stack->elems);",
     "\tfree(dynamic_vars->elems);",
     "\tfree(instances->elems);",
