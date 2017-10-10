@@ -22,14 +22,16 @@ enum class CommandType {
     PushNumber,
     PushString,
     Return,
-    BuiltinFunction
+    BuiltinFunction,
+    FuncCall,
+    Nop,
 };
 
 class Command {
     private:
         CommandType type;
         std::variant<std::string, double, Builtin> data;
-        std::size_t jump_loc;
+        std::variant<std::size_t, std::string> extra_data;
 
     public:
         Command(CommandType type);
@@ -37,6 +39,7 @@ class Command {
         Command(CommandType type, double dval);
         Command(CommandType type, const std::string &sval);
         Command(CommandType type, const std::string &sval, std::size_t jump);
+        Command(const std::string &oname, const std::string &fname);
 
         void set_jump(std::size_t new_jump);
 
@@ -45,6 +48,7 @@ class Command {
         double get_number() const;
         std::string get_string() const;
         std::size_t get_jump() const;
+        std::string get_func_name() const;
 };
 
 using CommandList = std::vector<Command>;

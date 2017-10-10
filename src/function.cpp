@@ -232,6 +232,32 @@ bool Function::execute(InstanceManager &manager,
                     return true;
                 }
                 break;
+
+            case CommandType::FuncCall: {
+                auto obj_var = get_val(command.get_string());
+                if (not obj_var) {
+                    return true;
+                }
+                auto object = obj_var->get_instance();
+                if (not object) {
+                    std::cerr << "Error! Cannot retrieve function from non-instance!\n";
+                    return true;
+                }
+                auto func = (*object)->get_func(command.get_func_name());
+                if (not func) {
+                    std::cerr << "Error! \"" << command.get_string()
+                              << "\" has no function \"" << command.get_func_name()
+                              << "\"!\n";
+                    return true;
+                }
+                if (func->execute(manager, classes, stack, globals)) {
+                    return true;
+                }
+                break;
+            }
+
+            case CommandType::Nop:
+                break;
         }
     }
 

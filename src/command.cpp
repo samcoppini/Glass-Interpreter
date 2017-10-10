@@ -14,7 +14,11 @@ Command::Command(CommandType type, const std::string &sval): type(type), data(sv
 }
 
 Command::Command(CommandType type, const std::string &sval, std::size_t jump):
-type(type), data(sval), jump_loc(jump) {
+type(type), data(sval), extra_data(jump) {
+}
+
+Command::Command(const std::string &oname, const std::string &fname):
+type(CommandType::FuncCall), data(oname), extra_data(fname) {
 }
 
 CommandType Command::get_type() const {
@@ -34,9 +38,13 @@ std::string Command::get_string() const {
 }
 
 void Command::set_jump(std::size_t new_jump) {
-    jump_loc = new_jump;
+    extra_data = new_jump;
 }
 
 std::size_t Command::get_jump() const {
-    return jump_loc;
+    return std::get<std::size_t>(extra_data);
+}
+
+std::string Command::get_func_name() const {
+    return std::get<std::string>(extra_data);
 }

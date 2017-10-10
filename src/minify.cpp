@@ -264,6 +264,13 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                     case CommandType::BuiltinFunction:
                         add_to_source(builtin_text(command.get_builtin(), "(_t)"));
                         break;
+
+                    case CommandType::FuncCall:
+                        add_to_source(command.get_string() + command.get_func_name() + ".?");
+                        break;
+
+                    case CommandType::Nop:
+                        break;
                 }
                 last_command = command;
             }

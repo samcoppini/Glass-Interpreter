@@ -2,6 +2,7 @@
 #include "instance.hpp"
 #include "instanceManager.hpp"
 #include "minify.hpp"
+#include "optimization.hpp"
 #include "parse.hpp"
 #include "variable.hpp"
 
@@ -17,6 +18,7 @@ void print_help(const std::string &interpreter_name) {
     std::cout << "--convert   Convert glass code with extensions to standard glass\n"
               << "--compile   Convert the source to a C program\n"
               << "--help      Display this help message\n"
+              << "--no-opt    Don't perform optimizations\n"
               << "--minify    Outputs a minified version of the source code\n"
               << "--pedantic  Disallow extensions to the base language of Glass\n"
               << "--width     Restricts the length of lines of minified source\n";
@@ -24,7 +26,8 @@ void print_help(const std::string &interpreter_name) {
 
 int main(int argc, char *argv[]) {
     std::string filename, out_file;
-    bool minify_code = false, pedantic = false, convert_code = false;
+    bool minify_code = false, pedantic = false, convert_code = false,
+         optimize = true;
     std::size_t width = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -35,6 +38,8 @@ int main(int argc, char *argv[]) {
             pedantic = true;
         } else if (arg == "--convert") {
             convert_code = true;
+        } else if (arg == "--no-opt") {
+            optimize = false;
         } else if (arg == "--compile") {
             if (i + 1 == argc) {
                 std::cerr << "Error! --compile argument supplied, but no output"
@@ -145,7 +150,13 @@ int main(int argc, char *argv[]) {
     } else if (not classes["M"].has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
-    } else if (not out_file.empty()) {
+    }
+
+    if (optimize) {
+        optimize_classes(classes);
+    }
+
+    if (not out_file.empty()) {
         return compile_classes(classes, out_file);
     } else {
         std::vector<Variable> stack;

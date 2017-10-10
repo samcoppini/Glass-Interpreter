@@ -608,6 +608,9 @@ std::map<std::string, Class> &classes)
                     command.get_type() == CommandType::LoopBegin)
                 {
                     add_name(command.get_string());
+                } else if (command.get_type() == CommandType::FuncCall) {
+                    add_name(command.get_string());
+                    add_name(command.get_func_name());
                 }
             }
         }
@@ -904,6 +907,35 @@ void output_commands(std::ofstream &file,
                 add_lines("leave_scope();",
                           "return;");
                 break;
+
+            case CommandType::FuncCall: {
+                std::string new_str = "temp = ";
+                if (command.get_string()[0] == '_') {
+                    new_str += "local_vars["
+                               + std::to_string(local_indices.at(command.get_string()));
+                } else if (std::islower(command.get_string()[0])) {
+                    new_str += "get_inst(this)->vars["
+                               + std::to_string(class_indices.at(command.get_string()));
+                } else {
+                    new_str += "&global_vars["
+                               + std::to_string(global_indices.at(command.get_string()));
+                }
+                new_str += "];";
+                add_lines(
+                    new_str,
+                    "if (N_" + command.get_func_name() + " < NUM_GLOBAL_VARS "
+                    "|| temp.name > NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+                    "\terror(\"Invalid function name!\\n\");",
+                    "if (temp.type != TYPE_INST)",
+                    "\terror(\"Cannot retrieve function from non-instance!\\n\");",
+                    "if ((*get_inst(temp.val.ival)->class)[N_"
+                    + command.get_func_name() + " - NUM_GLOBAL_VARS] == NULL)",
+                    "\terror(\"Cannot execute non-existent function!\\n\");",
+                    "(*get_inst(temp.val.ival)->class)[N_" + command.get_func_name()
+                    + " - NUM_GLOBAL_VARS](temp.val.ival);"
+                );
+                break;
+            }
 
             default:
                 break;
