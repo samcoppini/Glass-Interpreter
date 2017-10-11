@@ -19,7 +19,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "#define true ((bool) 1)",
     "#define false ((bool) 0)",
     "",
-    "typedef void (*(Class)[NUM_CLASS_VARS])(size_t);",
+    "typedef void (*(Class)[NUM_FUNC_VARS])(size_t);",
     "",
     "enum Type {",
     "\tTYPE_UNDEFINED,",
@@ -277,10 +277,10 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\tstruct Val *old_val;",
     "\tif (name < NUM_GLOBAL_VARS)",
     "\t\told_val = &global_vars[name];",
-    "\telse if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+    "\telse if (name < NUM_GLOBAL_VARS + NUM_FUNC_VARS)",
     "\t\told_val = &get_inst(this)->vars[name - NUM_GLOBAL_VARS];",
     "\telse if (name < MIN_DYNAMIC_VAR)",
-    "\t\told_val = &locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
+    "\t\told_val = &locals[name - NUM_GLOBAL_VARS - NUM_FUNC_VARS];",
     "\telse",
     "\t\told_val = &((struct Val *) dynamic_vars->elems)[name - MIN_DYNAMIC_VAR];",
     "\tif (old_val->type == TYPE_STR)",
@@ -292,10 +292,10 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\tstruct Val val;",
     "\tif (name < NUM_GLOBAL_VARS)",
     "\t\tval = global_vars[name];",
-    "\telse if (name < NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+    "\telse if (name < NUM_GLOBAL_VARS + NUM_FUNC_VARS)",
     "\t\tval = get_inst(this)->vars[name - NUM_GLOBAL_VARS];",
     "\telse if (name < MIN_DYNAMIC_VAR)",
-    "\t\tval = locals[name - NUM_GLOBAL_VARS - NUM_CLASS_VARS];",
+    "\t\tval = locals[name - NUM_GLOBAL_VARS - NUM_FUNC_VARS];",
     "\telse",
     "\t\tval = ((struct Val *) dynamic_vars->elems)[name - MIN_DYNAMIC_VAR];",
     "\tif (val.type == TYPE_STR)",
@@ -579,13 +579,14 @@ std::string escape_str(const std::string &str) {
 
 // Returns a list of the names used in the source, seperated by whether it's
 // a global name, class-scope name or a local name
-std::array<std::set<std::string>, 3> get_names(const
+std::array<std::set<std::string>, 4> get_names(const
 std::map<std::string, Class> &classes)
 {
-    std::array<std::set<std::string>, 3> vars;
+    std::array<std::set<std::string>, 4> vars;
     std::set<std::string> &global_vars = vars[0];
     std::set<std::string> &class_vars  = vars[1];
-    std::set<std::string> &local_vars  = vars[2];
+    std::set<std::string> &func_vars   = vars[2];
+    std::set<std::string> &local_vars  = vars[3];
 
     auto add_name = [&] (const std::string &name) {
         std::set<std::string> *context;
@@ -610,10 +611,19 @@ std::map<std::string, Class> &classes)
                     add_name(command.get_string());
                 } else if (command.get_type() == CommandType::FuncCall) {
                     add_name(command.get_string());
-                    add_name(command.get_func_name());
+                    auto func_name = command.get_func_name();
+                    if (std::islower(func_name[0])) {
+                        func_vars.insert(func_name);
+                    } else {
+                        add_name(func_name);
+                    }
                 }
             }
         }
+    }
+
+    for (auto &name: class_vars) {
+        func_vars.erase(name);
     }
 
     return vars;
@@ -624,6 +634,7 @@ std::map<std::string, Class> &classes)
 void output_name_enums(std::ofstream &file,
                        const std::set<std::string> &global_vars,
                        const std::set<std::string> &class_vars,
+                       const std::set<std::string> &func_vars,
                        const std::set<std::string> &local_vars)
 {
     file << "enum Name {\n";
@@ -636,14 +647,19 @@ void output_name_enums(std::ofstream &file,
         file << "\tN_" << var << ",\n";
     }
 
+    for (auto &var: func_vars) {
+        file << "\tN_" << var << ",\n";
+    }
+
     for (auto &var: local_vars) {
         file << "\tN_" << var << ",\n";
     }
 
     file << "\tNUM_GLOBAL_VARS = " << global_vars.size() << ",\n"
          << "\tNUM_CLASS_VARS = " << class_vars.size() << ",\n"
+         << "\tNUM_FUNC_VARS = " << class_vars.size() + func_vars.size() << ",\n"
          << "\tNUM_LOCAL_VARS = " << std::max<int>(1, local_vars.size()) << ",\n"
-         << "\tMIN_DYNAMIC_VAR = NUM_GLOBAL_VARS + NUM_CLASS_VARS + NUM_LOCAL_VARS"
+         << "\tMIN_DYNAMIC_VAR = NUM_GLOBAL_VARS + NUM_FUNC_VARS + NUM_LOCAL_VARS"
          << "\n};\n\n";
 }
 
@@ -652,7 +668,8 @@ void output_name_enums(std::ofstream &file,
 void output_class_defs(std::ofstream &file,
                        const std::map<std::string, Class> &classes,
                        const std::set<std::string> &global_vars,
-                       const std::set<std::string> &class_vars)
+                       const std::set<std::string> &class_vars,
+                       const std::set<std::string> &func_vars)
 {
     for (auto &[class_name, class_info]: classes) {
         if (global_vars.count(class_name) == 0) {
@@ -662,7 +679,7 @@ void output_class_defs(std::ofstream &file,
         // Forward declare all of the class's functions
         bool is_first = true;
         for (auto &func: class_info.get_functions()) {
-            if (class_vars.count(func.first)) {
+            if (class_vars.count(func.first) or func_vars.count(func.first)) {
                 if (is_first) {
                     file << "\nvoid ";
                     is_first = false;
@@ -680,6 +697,19 @@ void output_class_defs(std::ofstream &file,
         file << "\nClass C_" << class_name << " = {";
         is_first = true;
         for (auto var_info: class_vars) {
+            if (is_first) {
+                is_first = false;
+                file << "\n\t";
+            } else {
+                file << ",\n\t";
+            }
+            if (class_info.get_functions().count(var_info)) {
+                file << "F_" << class_name << "_" << var_info;
+            } else {
+                file << "NULL";
+            }
+        }
+        for (auto var_info: func_vars) {
             if (is_first) {
                 is_first = false;
                 file << "\n\t";
@@ -832,7 +862,7 @@ void output_commands(std::ofstream &file,
                 add_lines(
                     "temp = stack_pop(), temp2 = stack_pop();",
                     "if (temp.type != TYPE_NAME || temp.name < NUM_GLOBAL_VARS "
-                    "|| temp.name > NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+                    "|| temp.name > NUM_GLOBAL_VARS + NUM_FUNC_VARS)",
                     "\terror(\"Invalid function name!\\n\");",
                     "if (temp2.type != TYPE_NAME)",
                     "\terror(\"Cannot retrieve value of non-name!\\n\");",
@@ -924,7 +954,7 @@ void output_commands(std::ofstream &file,
                 add_lines(
                     new_str,
                     "if (N_" + command.get_func_name() + " < NUM_GLOBAL_VARS "
-                    "|| temp.name > NUM_GLOBAL_VARS + NUM_CLASS_VARS)",
+                    "|| temp.name > NUM_GLOBAL_VARS + NUM_FUNC_VARS)",
                     "\terror(\"Invalid function name!\\n\");",
                     "if (temp.type != TYPE_INST)",
                     "\terror(\"Cannot retrieve function from non-instance!\\n\");",
@@ -950,6 +980,7 @@ void output_functions(std::ofstream &file,
                       const std::map<std::string, Class> &classes,
                       const std::set<std::string> &global_vars,
                       const std::set<std::string> &class_vars,
+                      const std::set<std::string> &func_vars,
                       const std::set<std::string> &local_vars)
 {
     std::map<std::string, int> global_indices, class_indices, local_indices;
@@ -971,8 +1002,9 @@ void output_functions(std::ofstream &file,
             continue;
         }
         for (auto &[func_name, commands]: class_info.get_functions()) {
-            if (not class_vars.count(func_name) and
-                not (class_name == "M" and func_name == "m")) {
+            if (not class_vars.count(func_name) and not func_vars.count(func_name)
+                and not (class_name == "M" and func_name == "m"))
+            {
                 continue;
             }
             file << "\nvoid F_" << class_name << "_" << func_name
@@ -1007,17 +1039,17 @@ bool compile_classes(const std::map<std::string, Class> &classes,
         return true;
     }
 
-    auto [global_vars, class_vars, local_vars] = get_names(classes);
+    auto [global_vars, class_vars, func_vars, local_vars] = get_names(classes);
     global_vars.insert("M");
     class_vars.insert("c__");
-    output_name_enums(file, global_vars, class_vars, local_vars);
+    output_name_enums(file, global_vars, class_vars, func_vars, local_vars);
 
     for (auto &line: COMPILED_CODE_DEFS) {
         file << line << "\n";
     }
 
-    output_class_defs(file, classes, global_vars, class_vars);
-    output_functions(file, classes, global_vars, class_vars, local_vars);
+    output_class_defs(file, classes, global_vars, class_vars, func_vars);
+    output_functions(file, classes, global_vars, class_vars, func_vars, local_vars);
     output_main_func(file);
 
     return false;
