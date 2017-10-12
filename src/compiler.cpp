@@ -236,7 +236,7 @@ const std::string COMPILED_CODE_DEFS[] = {
     "\t\tinstances->elems = realloc(instances->elems,"
     "instances->num_allocated * sizeof(struct Instance));",
     "\t\tinsts_used->elems = realloc(insts_used->elems,"
-    "insts_used->num_allocated * sizeof(bool));",
+    "instances->num_allocated * sizeof(bool));",
     "\t\tfor (i = insts_used->num_allocated, insts_used->num_allocated <<= 1;"
     " i < insts_used->num_allocated; i++) {",
     "\t\t\t((bool *) insts_used->elems)[i] = false;",
