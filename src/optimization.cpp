@@ -57,9 +57,7 @@ void optimize_commands(CommandList &commands) {
     }
 
     // Get rid of additional commands at the end of the command list
-    while (to_replace--) {
-        commands.pop_back();
-    }
+    commands.erase(commands.end() - to_replace, commands.end());
 }
 
 void optimize_class(Class &to_optimize) {
