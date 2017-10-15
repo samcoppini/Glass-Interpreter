@@ -243,14 +243,31 @@ bool Function::execute(InstanceManager &manager,
                     std::cerr << "Error! Cannot retrieve function from non-instance!\n";
                     return true;
                 }
-                auto func = (*object)->get_func(command.get_func_name());
+                auto func = (*object)->get_func(command.get_additional_name());
                 if (not func) {
                     std::cerr << "Error! \"" << command.get_string()
-                              << "\" has no function \"" << command.get_func_name()
+                              << "\" has no function \"" << command.get_additional_name()
                               << "\"!\n";
                     return true;
                 }
                 if (func->execute(manager, classes, stack, globals)) {
+                    return true;
+                }
+                break;
+            }
+
+            case CommandType::NewInst: {
+                auto oname = command.get_string();
+                auto cname = command.get_additional_name();
+                if (not classes.count(cname)) {
+                    std::cerr << "Error! Cannot instantiate non-class \""
+                              << cname << "\"!\n";
+                    return true;
+                }
+                auto new_inst = manager.new_instance(classes.at(cname));
+                set_val(oname, new_inst);
+                auto ctor = new_inst->get_func("c__");
+                if (ctor and ctor->execute(manager, classes, stack, globals)) {
                     return true;
                 }
                 break;

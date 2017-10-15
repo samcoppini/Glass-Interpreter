@@ -1,37 +1,58 @@
 #include "optimization.hpp"
 
+#include <functional>
 #include <stack>
 
-// Performs an optimization pass on a sequence of commands
-void optimize_commands(CommandList &commands) {
-    // The sequence of commands we're looking for to replace
-    const std::array<CommandType, 4> to_match {{
-        CommandType::PushName, CommandType::PushName,
-        CommandType::GetFunction, CommandType::ExecuteFunc
-    }};
+// A list of the different patterns of command types for optimizations we can
+// match, and the corresponding functions to call to make the proper
+// command replacements
+const std::map<std::vector<CommandType>, std::function<void(CommandList&, size_t)>>
+COMMAND_REPLACEMENTS = {
+    {{CommandType::PushName, CommandType::PushName,
+      CommandType::GetFunction, CommandType::ExecuteFunc},
+     [] (CommandList &commands, size_t end_index) {
+         commands[end_index - 0] = {CommandType::FuncCall,
+                                    commands[end_index - 3].get_string(),
+                                    commands[end_index - 2].get_string()};
+         commands[end_index - 1] = {CommandType::Nop};
+         commands[end_index - 2] = {CommandType::Nop};
+         commands[end_index - 3] = {CommandType::Nop};
+     }},
+     {{CommandType::PushName, CommandType::PushName,
+       CommandType::AssignClass},
+      [] (CommandList &commands, size_t end_index) {
+          commands[end_index - 0] = {CommandType::NewInst,
+                                     commands[end_index - 2].get_string(),
+                                     commands[end_index - 1].get_string()};
+          commands[end_index - 1] = {CommandType::Nop};
+          commands[end_index - 2] = {CommandType::Nop};
+      }}
+};
 
-    for (size_t i = to_match.size() - 1; i < commands.size(); i++) {
-        bool is_match = true;
-        for (size_t j = 0; j < to_match.size(); j++) {
-            if (commands[i - j].get_type() != to_match[to_match.size() - j - 1]) {
-                is_match = false;
-                break;
+// Looks through the list of commands, looking for sequences of commands that
+// we can collapse into one command
+void collapse_commands(CommandList &commands) {
+    for (size_t i = 0; i < commands.size(); i++) {
+        for (const auto &[to_match, replace_func]: COMMAND_REPLACEMENTS) {
+            if (i < to_match.size() - 1)
+                continue;
+
+            bool found_match = true;
+            for (size_t j = 0; j < to_match.size(); j++) {
+                if (commands[i - j].get_type() != to_match[to_match.size() - j - 1]) {
+                    found_match = false;
+                    break;
+                }
+            }
+            if (found_match) {
+                replace_func(commands, i);
             }
         }
-        if (is_match) {
-            // If we matched the sequence of commands, replace the four
-            // commands with a single CommandType::FuncCall
-            commands[i - 0] = {commands[i - 3].get_string(), commands[i - 2].get_string()};
-            commands[i - 1] = {CommandType::Nop};
-            commands[i - 2] = {CommandType::Nop};
-            commands[i - 3] = {CommandType::Nop};
-            i += to_match.size() - 1;
-        }
     }
+}
 
-    // After making our optimization pass, we need to remove the NOP commands
-    // that we replaced certain commands with
-
+// Removes NOP commands from a sequence of commands
+void remove_nops(CommandList &commands) {
     // Number of NOP commands that we have removed so far
     size_t to_replace = 0;
 
@@ -60,9 +81,12 @@ void optimize_commands(CommandList &commands) {
     commands.erase(commands.end() - to_replace, commands.end());
 }
 
+// Optimizes the functions in a class
 void optimize_class(Class &to_optimize) {
     for (auto &func_info: to_optimize.get_functions()) {
-        optimize_commands(to_optimize.get_function(func_info.first));
+        auto &commands = to_optimize.get_function(func_info.first);
+        collapse_commands(commands);
+        remove_nops(commands);
     }
 }
 

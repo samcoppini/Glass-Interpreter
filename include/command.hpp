@@ -7,23 +7,32 @@
 
 enum class Builtin: int;
 
+// An enumeration of all the different types of Glass commands
 enum class CommandType {
-    AssignClass,
-    AssignSelf,
-    AssignValue,
-    DupElement,
-    ExecuteFunc,
-    GetFunction,
-    GetValue,
-    LoopBegin,
-    LoopEnd,
-    PopStack,
-    PushName,
-    PushNumber,
-    PushString,
-    Return,
+    // Simple commands that map one-to-one to basic glass commands
+    AssignClass, // !
+    AssignSelf,  // $
+    AssignValue, // =
+    DupElement,  // (number)
+    ExecuteFunc, // ?
+    GetFunction, // .
+    GetValue,    // *
+    LoopBegin,   // /(name)
+    LoopEnd,     // \ (must be matched with a LoopBegin command)
+    PopStack,    // ,
+    PushName,    // (name)
+    PushNumber,  // <number>
+    PushString,  // "str in quotes"
+    Return,      // ^
+
+    // A command representing one of the several built-in functions
     BuiltinFunction,
-    FuncCall,
+
+    // Optimized commands that are made up of several different commands
+    FuncCall, // (objectName)(funcName).?
+    NewInst,  // (objectName)(className)!
+
+    // Does nothing, generated while optimizing and removed quickly afterwards
     Nop,
 };
 
@@ -39,7 +48,7 @@ class Command {
         Command(CommandType type, double dval);
         Command(CommandType type, const std::string &sval);
         Command(CommandType type, const std::string &sval, std::size_t jump);
-        Command(const std::string &oname, const std::string &fname);
+        Command(CommandType type, const std::string &oname, const std::string &fname);
 
         void set_jump(std::size_t new_jump);
 
@@ -48,7 +57,7 @@ class Command {
         double get_number() const;
         std::string get_string() const;
         std::size_t get_jump() const;
-        std::string get_func_name() const;
+        std::string get_additional_name() const;
 };
 
 using CommandList = std::vector<Command>;

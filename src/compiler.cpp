@@ -611,12 +611,15 @@ std::map<std::string, Class> &classes)
                     add_name(command.get_string());
                 } else if (command.get_type() == CommandType::FuncCall) {
                     add_name(command.get_string());
-                    auto func_name = command.get_func_name();
+                    auto func_name = command.get_additional_name();
                     if (std::islower(func_name[0])) {
                         func_vars.insert(func_name);
                     } else {
                         add_name(func_name);
                     }
+                } else if (command.get_type() == CommandType::NewInst) {
+                    add_name(command.get_string());
+                    add_name(command.get_additional_name());
                 }
             }
         }
@@ -947,27 +950,39 @@ void output_commands(std::ofstream &file,
                     new_str += "get_inst(this)->vars["
                                + std::to_string(class_indices.at(command.get_string()));
                 } else {
-                    new_str += "&global_vars["
+                    new_str += "global_vars["
                                + std::to_string(global_indices.at(command.get_string()));
                 }
                 new_str += "];";
                 add_lines(
                     new_str,
-                    "if (N_" + command.get_func_name() + " < NUM_GLOBAL_VARS "
-                    "|| temp.name > NUM_GLOBAL_VARS + NUM_FUNC_VARS)",
+                    "if (N_" + command.get_additional_name() + " < NUM_GLOBAL_VARS)",
                     "\terror(\"Invalid function name!\\n\");",
                     "if (temp.type != TYPE_INST)",
                     "\terror(\"Cannot retrieve function from non-instance!\\n\");",
                     "if ((*get_inst(temp.val.ival)->class)[N_"
-                    + command.get_func_name() + " - NUM_GLOBAL_VARS] == NULL)",
+                    + command.get_additional_name() + " - NUM_GLOBAL_VARS] == NULL)",
                     "\terror(\"Cannot execute non-existent function!\\n\");",
-                    "(*get_inst(temp.val.ival)->class)[N_" + command.get_func_name()
-                    + " - NUM_GLOBAL_VARS](temp.val.ival);"
-                );
+                    "(*get_inst(temp.val.ival)->class)[N_" + command.get_additional_name()
+                    + " - NUM_GLOBAL_VARS](temp.val.ival);");
                 break;
             }
 
-            default:
+            case CommandType::NewInst: {
+                auto oname = command.get_string();
+                auto cname = command.get_additional_name();
+                add_lines(
+                    "if (N_" + cname + " > NUM_GLOBAL_VARS"
+                    " || factory_funcs[N_" + cname + "] == NULL)",
+                    "\terror(\"Invalid class name!\\n\");",
+                    "temp.type = TYPE_INST;",
+                    "temp.val.ival = factory_funcs[N_" + cname + "]();",
+                    "assign(N_" + oname + ", this, local_vars, &temp);");
+                break;
+            }
+
+            case CommandType::BuiltinFunction:
+            case CommandType::Nop:
                 break;
         }
     }

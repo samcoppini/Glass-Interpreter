@@ -17,8 +17,8 @@ Command::Command(CommandType type, const std::string &sval, std::size_t jump):
 type(type), data(sval), extra_data(jump) {
 }
 
-Command::Command(const std::string &oname, const std::string &fname):
-type(CommandType::FuncCall), data(oname), extra_data(fname) {
+Command::Command(CommandType type, const std::string &oname, const std::string &fname):
+type(type), data(oname), extra_data(fname) {
 }
 
 CommandType Command::get_type() const {
@@ -45,6 +45,6 @@ std::size_t Command::get_jump() const {
     return std::get<std::size_t>(extra_data);
 }
 
-std::string Command::get_func_name() const {
+std::string Command::get_additional_name() const {
     return std::get<std::string>(extra_data);
 }
