@@ -271,6 +271,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                     case CommandType::FuncCall:
                     case CommandType::NewInst:
                     case CommandType::Nop:
+                        assert(false);
                         break;
                 }
                 last_command = command;

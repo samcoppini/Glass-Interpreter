@@ -5,6 +5,7 @@
 #include "instanceManager.hpp"
 #include "variable.hpp"
 
+#include <cassert>
 #include <cctype>
 #include <iostream>
 
@@ -274,6 +275,7 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::Nop:
+                assert(false);
                 break;
         }
     }

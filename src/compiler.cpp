@@ -2,6 +2,7 @@
 #include "compiler.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <fstream>
 #include <iostream>
@@ -983,6 +984,7 @@ void output_commands(std::ofstream &file,
 
             case CommandType::BuiltinFunction:
             case CommandType::Nop:
+                assert(false);
                 break;
         }
     }
