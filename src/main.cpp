@@ -92,8 +92,9 @@ int main(int argc, char *argv[]) {
         std::cerr << "Error! Width command-line parameter specified without"
                   << " --minify or --convert!\n";
         return 1;
-    } else if (convert_code and not out_file.empty()) {
-        std::cerr << "Error! Cannot minify and compile code at the same time!\n";
+    } else if ((convert_code or minify_code) and not out_file.empty()) {
+        std::cerr << "Error! Cannot " << (convert_code ? "convert" : "minify")
+                  << " and compile code at the same time!\n";
         return 1;
     }
 
