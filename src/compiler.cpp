@@ -761,12 +761,7 @@ void output_class_defs(std::ofstream &file,
 }
 
 // Translates the Glass commands to C source code
-void output_commands(std::ofstream &file,
-                     const CommandList &commands,
-                     const std::map<std::string, int> &global_indices,
-                     const std::map<std::string, int> &class_indices,
-                     const std::map<std::string, int> &local_indices)
-{
+void output_commands(std::ofstream &file, const CommandList &commands) {
     // If the function is a builtin, just output the definition of
     // the function from BUILTIN_IMPLS and leave
     if (commands.size() == 1 and
@@ -779,20 +774,11 @@ void output_commands(std::ofstream &file,
         return;
     }
 
-    // Create a table for storing the local variables, all initialized
-    // to be undefined at first
-    file << "\tstruct Val local_vars[NUM_LOCAL_VARS] = {";
-    bool is_first = true;
-    for (int i = 0; i < std::max<int>(1, local_indices.size()); i++) {
-        if (is_first) {
-            file << "\n\t\t";
-            is_first = false;
-        } else {
-            file << ",\n\t\t";
-        }
-        file << "{0.0, 0, TYPE_UNDEFINED}";
-    }
-    file << "\n\t};\n"
+    // Create an array for storing the local variables, all initialized
+    // to be undefined values at first
+    file << "\tstruct Val local_vars[NUM_LOCAL_VARS] = {\n"
+         << "\t\t{0.0, 0, TYPE_UNDEFINED}\n"
+         << "\t};\n"
          << "\tstruct Val temp, temp2;\n"
          << "\tenter_scope(this, local_vars);\n";
 
@@ -895,14 +881,13 @@ void output_commands(std::ofstream &file,
             case CommandType::LoopBegin: {
                 std::string new_str = "while (";
                 if (command.get_string()[0] == '_') {
-                    new_str += "is_true(&local_vars["
-                               + std::to_string(local_indices.at(command.get_string()));
+                    new_str += "is_true(&local_vars[N_" + command.get_string()
+                               + " - NUM_GLOBAL_VARS - NUM_FUNC_VARS";
                 } else if (std::islower(command.get_string()[0])) {
-                    new_str += "is_true(&get_inst(this)->vars["
-                               + std::to_string(class_indices.at(command.get_string()));
+                    new_str += "is_true(&get_inst(this)->vars[N_"
+                               + command.get_string() + " - NUM_GLOBAL_VARS";
                 } else {
-                    new_str += "is_true(&global_vars["
-                               + std::to_string(global_indices.at(command.get_string()));
+                    new_str += "is_true(&global_vars[N_" + command.get_string();
                 }
                 add_lines(new_str + "])) {");
                 tab_level++;
@@ -949,14 +934,13 @@ void output_commands(std::ofstream &file,
             case CommandType::FuncCall: {
                 std::string new_str = "temp = ";
                 if (command.get_string()[0] == '_') {
-                    new_str += "local_vars["
-                               + std::to_string(local_indices.at(command.get_string()));
+                    new_str += "local_vars[N_" + command.get_string()
+                               + " - NUM_GLOBAL_VARS - NUM_FUNC_VARS";
                 } else if (std::islower(command.get_string()[0])) {
-                    new_str += "get_inst(this)->vars["
-                               + std::to_string(class_indices.at(command.get_string()));
+                    new_str += "get_inst(this)->vars[N_" + command.get_string()
+                               + " - NUM_GLOBAL_VARS";
                 } else {
-                    new_str += "global_vars["
-                               + std::to_string(global_indices.at(command.get_string()));
+                    new_str += "global_vars[N_" + command.get_string();
                 }
                 new_str += "];";
                 add_lines(
@@ -1001,23 +985,8 @@ void output_functions(std::ofstream &file,
                       const std::map<std::string, Class> &classes,
                       const std::set<std::string> &global_vars,
                       const std::set<std::string> &class_vars,
-                      const std::set<std::string> &func_vars,
-                      const std::set<std::string> &local_vars)
+                      const std::set<std::string> &func_vars)
 {
-    std::map<std::string, int> global_indices, class_indices, local_indices;
-    int i = 0;
-    for (auto &global_var: global_vars) {
-        global_indices[global_var] = i++;
-    }
-    i = 0;
-    for (auto &class_var: class_vars) {
-        class_indices[class_var] = i++;
-    }
-    i = 0;
-    for (auto &local_var: local_vars) {
-        local_indices[local_var] = i++;
-    }
-
     for (auto &[class_name, class_info]: classes) {
         if (not global_vars.count(class_name)) {
             continue;
@@ -1031,8 +1000,7 @@ void output_functions(std::ofstream &file,
             file << "\nvoid F" << class_name.size() << class_name
                  << func_name.size() << func_name << "(size_t this) {\n";
 
-            output_commands(file, commands, global_indices, class_indices,
-                            local_indices);
+            output_commands(file, commands);
             file << "}\n";
         }
     }
@@ -1071,7 +1039,7 @@ bool compile_classes(const std::map<std::string, Class> &classes,
     }
 
     output_class_defs(file, classes, global_vars, class_vars, func_vars);
-    output_functions(file, classes, global_vars, class_vars, func_vars, local_vars);
+    output_functions(file, classes, global_vars, class_vars, func_vars);
     output_main_func(file);
 
     return false;
