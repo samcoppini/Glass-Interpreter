@@ -690,7 +690,8 @@ void output_class_defs(std::ofstream &file,
                 } else {
                     file << ",\n     ";
                 }
-                file << "F_" << class_name << "_" << func.first << "(size_t)";
+                file << "F" << class_name.size() << class_name
+                     << func.first.size() << func.first << "(size_t)";
             }
         }
         if (not is_first) {
@@ -708,7 +709,8 @@ void output_class_defs(std::ofstream &file,
                 file << ",\n\t";
             }
             if (class_info.get_functions().count(var_info)) {
-                file << "F_" << class_name << "_" << var_info;
+                file << "F" << class_name.size() << class_name
+                     << var_info.size() << var_info;
             } else {
                 file << "NULL";
             }
@@ -721,7 +723,8 @@ void output_class_defs(std::ofstream &file,
                 file << ",\n\t";
             }
             if (class_info.get_functions().count(var_info)) {
-                file << "F_" << class_name << "_" << var_info;
+                file << "F" << class_name.size() << class_name
+                     << var_info.size() << var_info;
             } else {
                 file << "NULL";
             }
@@ -732,7 +735,8 @@ void output_class_defs(std::ofstream &file,
              << "\tsize_t index = get_free_inst_index();\n"
              << "\tget_inst(index)->class = &C_" << class_name << ";\n";
         if (class_info.get_functions().count("c__")) {
-            file << "\tF_" << class_name << "_c__(index);\n";
+            file << "\tF" << class_name.size() << class_name
+                 << "3c__(index);\n";
         }
         file << "\treturn index;\n}\n";
     }
@@ -1024,8 +1028,9 @@ void output_functions(std::ofstream &file,
             {
                 continue;
             }
-            file << "\nvoid F_" << class_name << "_" << func_name
-                 << "(size_t this) {\n";
+            file << "\nvoid F" << class_name.size() << class_name
+                 << func_name.size() << func_name << "(size_t this) {\n";
+
             output_commands(file, commands, global_indices, class_indices,
                             local_indices);
             file << "}\n";
@@ -1040,7 +1045,7 @@ void output_main_func(std::ofstream &file) {
          << "\tinit();\n"
          << "\tatexit(cleanup);\n"
          << "\tmain_obj = new_C_M();\n"
-         << "\tF_M_m(main_obj);\n"
+         << "\tF1M1m(main_obj);\n"
          << "\treturn 0;\n"
          << "}\n";
 }
