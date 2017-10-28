@@ -569,10 +569,11 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
 std::string escape_str(const std::string &str) {
     std::string new_str;
     for (auto &c: str) {
-        if (c == '\n') {
-            new_str += "\\n";
-        } else {
-            new_str += c;
+        switch (c) {
+            case '\n': new_str += "\\n";  break;
+            case '\\': new_str += "\\\\"; break;
+            case '"':  new_str += "\\\""; break;
+            default:   new_str += c;      break;
         }
     }
     return new_str;
