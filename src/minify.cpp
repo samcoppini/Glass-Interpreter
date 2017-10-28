@@ -181,16 +181,14 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
     }
 
     for (const auto &[class_name, class_info]: classes) {
-        add_to_source("{");
-        add_to_source(get_name(class_name));
+        add_to_source("{" + get_name(class_name));
         if (not convert_code) {
             for (const auto &parent: class_info.get_parents()) {
                 add_to_source(get_name(parent));
             }
         }
         for (const auto &[func_name, func_info]: class_info.get_functions()) {
-            add_to_source("[");
-            add_to_source(get_name(func_name));
+            add_to_source("[" + get_name(func_name));
 
             std::optional<Command> last_command;
             for (const auto &command: func_info) {
