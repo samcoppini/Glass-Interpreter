@@ -11,9 +11,11 @@ using namespace std::string_literals;
 
 // Print an error message with information about the line and column the
 // error occurred on
-void parse_error(int line, int col, const std::string &err) {
-    std::cerr << "Error on line " << line << ", column " << col << ": " << err
-              << "\n";
+void parse_error(const std::string &file_name, int line, int col,
+                 const std::string &err)
+{
+    std::cerr << "Error in " << file_name << ", line " << line << ", column "
+              << col << ":\n" << err << "\n";
 }
 
 // Reads a comment, and returns whether the file ended before the comment did
@@ -29,7 +31,7 @@ bool get_comment(File &file) {
         }
     }
 
-    parse_error(start_line, start_col,
+    parse_error(file.get_name(), start_line, start_col,
                 "Unexpected end-of-file while reading comment.");
 
     return true;
@@ -55,7 +57,7 @@ std::optional<double> get_number(File &file, char end_char) {
     }
 
     if (c != end_char) {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Unexpected end-of-file when reading a number.");
         return std::nullopt;
     }
@@ -63,10 +65,11 @@ std::optional<double> get_number(File &file, char end_char) {
     try {
         return std::stod(str);
     } catch (const std::invalid_argument &e) {
-        parse_error(start_line, start_col, "Invalid number \"" + str + "\".");
+        parse_error(file.get_name(), start_line, start_col,
+                    "Invalid number \"" + str + "\".");
         return std::nullopt;
     } catch (const std::out_of_range &e) {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     str + " is too large to be represented as a number.");
         return std::nullopt;
     }
@@ -84,14 +87,14 @@ std::optional<std::string> get_name(File &file, bool paren_started = false) {
     int start_col = file.get_col();
 
     if (not paren_started and not file.get(c)) {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "End of file encountered while reading name.");
         return std::nullopt;
     } else if (paren_started or c == '(') {
         while (file.get(c) and c != ')') {
             if (std::isalnum(c) or c == '_') {
                 if (name.size() == 0 and std::isdigit(c)) {
-                    parse_error(file.get_line(), file.get_col(),
+                    parse_error(file.get_name(), file.get_line(), file.get_col(),
                                 "\""s + c + "\" may not be used to start a name.");
                     return std::nullopt;
                 }
@@ -101,14 +104,14 @@ std::optional<std::string> get_name(File &file, bool paren_started = false) {
                     return std::nullopt;
                 }
             } else {
-                parse_error(file.get_line(), file.get_col(),
+                parse_error(file.get_name(), file.get_line(), file.get_col(),
                             "Unexpected \""s + c
                             + "\" encountered when parsing name.");
                 return std::nullopt;
             }
         }
         if (c != ')') {
-            parse_error(start_line, start_col,
+            parse_error(file.get_name(), start_line, start_col,
                         "Unexpected end of file encountered when reading name.");
             return std::nullopt;
         }
@@ -121,13 +124,14 @@ std::optional<std::string> get_name(File &file, bool paren_started = false) {
     } else if (std::isalpha(c)) {
         name = c;
     } else {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Expected name, but \""s + c + "\" is not a valid name.");
         return std::nullopt;
     }
 
     if (name.size() == 0) {
-        parse_error(start_line, start_col, "Cannot use zero-length name.");
+        parse_error(file.get_name(), start_line, start_col,
+                    "Cannot use zero-length name.");
         return std::nullopt;
     }
 
@@ -162,7 +166,7 @@ std::optional<std::string> get_string(File &file) {
     }
 
     if (c != '"') {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Unexpected end-of-file encountered when parsing string.");
         return std::nullopt;
     }
@@ -243,7 +247,7 @@ std::optional<CommandList> get_commands(File &file) {
 
             case '\\': {
                 if (loop_stack.size() == 0) {
-                    parse_error(file.get_line(), file.get_col(),
+                    parse_error(file.get_name(), file.get_line(), file.get_col(),
                                 "Unexpected \"\\\" encountered outside of a loop.");
                     return std::nullopt;
                 }
@@ -289,7 +293,7 @@ std::optional<CommandList> get_commands(File &file) {
                 } else if (std::isdigit(c)) {
                     commands.emplace_back(CommandType::DupElement, c - '0');
                 } else if (not std::isspace(c)) {
-                    parse_error(file.get_line(), file.get_col(),
+                    parse_error(file.get_name(), file.get_line(), file.get_col(),
                                 "Invalid command \""s + c
                                 + "\" encountered when parsing a function.");
                     return std::nullopt;
@@ -299,14 +303,15 @@ std::optional<CommandList> get_commands(File &file) {
     }
 
     if (c != ']') {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Error! End of file encountered when parsing function.");
         return std::nullopt;
     }
 
     if (loop_stack.size() > 0) {
         if (loop_stack.size() == 1) {
-            parse_error(loop_locs.top().first, loop_locs.top().second,
+            parse_error(file.get_name(), loop_locs.top().first,
+                        loop_locs.top().second,
                         "Loop is not closed before end of function.");
         }
         return std::nullopt;
@@ -325,7 +330,7 @@ std::optional<std::pair<std::string, CommandList>> get_func(File &file) {
     if (not func_name) {
         return std::nullopt;
     } else if (not std::islower(func_name->front())) {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Function name \"" + *func_name
                     + "\" must start with a lowercase letter.");
         return std::nullopt;
@@ -349,7 +354,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
     if (not class_name) {
         return std::nullopt;
     } else if (not std::isupper(class_name->front())) {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Class name \"" + *class_name
                     + "\" must begin with a capital letter.");
         return std::nullopt;
@@ -370,7 +375,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
             }
             auto [func_name, commands] = *func;
             if (new_class.add_function(func_name, commands)) {
-                parse_error(func_line, func_col,
+                parse_error(file.get_name(), func_line, func_col,
                             "\"" + *class_name + "\" has multiple definitions of \""
                             + func_name + "\".");
                 return std::nullopt;
@@ -389,7 +394,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
                 return std::nullopt;
             }
             if (new_class.add_parent(*parent_name)) {
-                parse_error(parent_line, parent_col,
+                parse_error(file.get_name(), parent_line, parent_col,
                             *class_name + " inherits from \""
                             + *parent_name + "\" multiple times.");
                 return std::nullopt;
@@ -397,7 +402,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
         } else {
             int err_line = file.get_line();
             int err_col = file.get_col();
-            parse_error(err_line, err_col,
+            parse_error(file.get_name(), err_line, err_col,
                         "Unexpected \""s + c
                         + "\" character encountered when parsing class "
                         + *class_name + ".");
@@ -406,7 +411,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
     }
 
     if (c != '}') {
-        parse_error(start_line, start_col,
+        parse_error(file.get_name(), start_line, start_col,
                     "Unexpected end of file when parsing class definition.");
         return std::nullopt;
     }
@@ -445,7 +450,7 @@ get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
             }
             auto [class_name, new_class] = *class_pair;
             if (classes.count(class_name)) {
-                parse_error(class_line, class_col,
+                parse_error(file.get_name(), class_line, class_col,
                             "Class " + class_name + " is defined multiple times.");
                 return std::nullopt;
             }
@@ -461,7 +466,7 @@ get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
                 return std::nullopt;
             }
         } else {
-            parse_error(file.get_line(), file.get_col(),
+            parse_error(file.get_name(), file.get_line(), file.get_col(),
                         "Unexpected character \""s + c + "\" encountered.");
             return std::nullopt;
         }

@@ -7,6 +7,9 @@
 // line and column in the file
 class File {
     private:
+        // The name of the file being read
+        std::string file_name;
+
         // The file being read
         std::ifstream file;
 
@@ -30,6 +33,8 @@ class File {
         int get_line() const;
 
         int get_col() const;
+
+        std::string get_name() const;
 
         bool get(char &c);
 

@@ -1,7 +1,8 @@
 #include "file.hpp"
 
 File::File(const std::string &file_name):
-file(file_name), last_char('\0'), line(1), col(0), last_is_next(false) {
+file_name(file_name), file(file_name), last_char('\0'), line(1), col(0),
+last_is_next(false) {
 }
 
 void File::advance_character(char c) {
@@ -27,6 +28,11 @@ int File::get_line() const {
 // Returns the column of the last character read
 int File::get_col() const {
     return col;
+}
+
+// Returns the name of the file
+std::string File::get_name() const {
+    return file_name;
 }
 
 // Gets the next character in the file, and returns whether there's still more
