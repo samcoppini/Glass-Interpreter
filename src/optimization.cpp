@@ -13,19 +13,25 @@ COMMAND_REPLACEMENTS = {
      [] (CommandList &commands, size_t end_index) {
          commands[end_index - 0] = {CommandType::FuncCall,
                                     commands[end_index - 3].get_string(),
-                                    commands[end_index - 2].get_string()};
-         commands[end_index - 1] = {CommandType::Nop};
-         commands[end_index - 2] = {CommandType::Nop};
-         commands[end_index - 3] = {CommandType::Nop};
+                                    commands[end_index - 2].get_string(),
+                                    commands[end_index - 1].get_file_name(),
+                                    commands[end_index - 1].get_line(),
+                                    commands[end_index - 1].get_col()};
+         commands[end_index - 1] = {CommandType::Nop, "", 0, 0};
+         commands[end_index - 2] = {CommandType::Nop, "", 0, 0};
+         commands[end_index - 3] = {CommandType::Nop, "", 0, 0};
      }},
      {{CommandType::PushName, CommandType::PushName,
        CommandType::AssignClass},
       [] (CommandList &commands, size_t end_index) {
           commands[end_index - 0] = {CommandType::NewInst,
                                      commands[end_index - 2].get_string(),
-                                     commands[end_index - 1].get_string()};
-          commands[end_index - 1] = {CommandType::Nop};
-          commands[end_index - 2] = {CommandType::Nop};
+                                     commands[end_index - 1].get_string(),
+                                     commands[end_index].get_file_name(),
+                                     commands[end_index].get_line(),
+                                     commands[end_index].get_col()};
+          commands[end_index - 1] = {CommandType::Nop, "", 0, 0};
+          commands[end_index - 2] = {CommandType::Nop, "", 0, 0};
       }}
 };
 

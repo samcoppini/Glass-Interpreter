@@ -185,6 +185,11 @@ std::optional<CommandList> get_commands(File &file) {
     int start_line = file.get_line();
     int start_col = file.get_col();
 
+    auto add_command = [&] (const auto &...args) {
+        commands.emplace_back(args..., file.get_name(), file.get_line(),
+                                       file.get_col());
+    };
+
     while (file.get(c) and c != ']') {
         switch (c) {
             case '\'':
@@ -194,35 +199,35 @@ std::optional<CommandList> get_commands(File &file) {
                 break;
 
             case ',':
-                commands.emplace_back(CommandType::PopStack);
+                add_command(CommandType::PopStack);
                 break;
 
             case '^':
-                commands.emplace_back(CommandType::Return);
+                add_command(CommandType::Return);
                 break;
 
             case '=':
-                commands.emplace_back(CommandType::AssignValue);
+                add_command(CommandType::AssignValue);
                 break;
 
             case '!':
-                commands.emplace_back(CommandType::AssignClass);
+                add_command(CommandType::AssignClass);
                 break;
 
             case '.':
-                commands.emplace_back(CommandType::GetFunction);
+                add_command(CommandType::GetFunction);
                 break;
 
             case '?':
-                commands.emplace_back(CommandType::ExecuteFunc);
+                add_command(CommandType::ExecuteFunc);
                 break;
 
             case '*':
-                commands.emplace_back(CommandType::GetValue);
+                add_command(CommandType::GetValue);
                 break;
 
             case '$':
-                commands.emplace_back(CommandType::AssignSelf);
+                add_command(CommandType::AssignSelf);
                 break;
 
             case '"': {
@@ -230,7 +235,7 @@ std::optional<CommandList> get_commands(File &file) {
                 if (not str_val) {
                     return std::nullopt;
                 }
-                commands.emplace_back(CommandType::PushString, *str_val);
+                add_command(CommandType::PushString, *str_val);
                 break;
             }
 
@@ -241,7 +246,7 @@ std::optional<CommandList> get_commands(File &file) {
                     return std::nullopt;
                 }
                 loop_stack.push(commands.size());
-                commands.emplace_back(CommandType::LoopBegin, *name, 0);
+                add_command(CommandType::LoopBegin, *name, 0);
                 break;
             }
 
@@ -252,7 +257,7 @@ std::optional<CommandList> get_commands(File &file) {
                     return std::nullopt;
                 }
                 commands[loop_stack.top()].set_jump(commands.size());
-                commands.emplace_back(CommandType::LoopEnd, "", loop_stack.top());
+                add_command(CommandType::LoopEnd, "", loop_stack.top());
                 loop_stack.pop();
                 loop_locs.pop();
                 break;
@@ -267,14 +272,14 @@ std::optional<CommandList> get_commands(File &file) {
                     if (not num) {
                         return std::nullopt;
                     }
-                    commands.emplace_back(CommandType::DupElement, *num);
+                    add_command(CommandType::DupElement, *num);
                 } else {
                     file.unget();
                     auto name = get_name(file, true);
                     if (not name) {
                         return std::nullopt;
                     }
-                    commands.emplace_back(CommandType::PushName, *name);
+                    add_command(CommandType::PushName, *name);
                 }
                 break;
 
@@ -283,15 +288,15 @@ std::optional<CommandList> get_commands(File &file) {
                 if (not num_val) {
                     return std::nullopt;
                 }
-                commands.emplace_back(CommandType::PushNumber, *num_val);
+                add_command(CommandType::PushNumber, *num_val);
                 break;
             }
 
             default:
                 if (std::isalpha(c)) {
-                    commands.emplace_back(CommandType::PushName, std::string{c});
+                    add_command(CommandType::PushName, std::string{c});
                 } else if (std::isdigit(c)) {
-                    commands.emplace_back(CommandType::DupElement, c - '0');
+                    add_command(CommandType::DupElement, c - '0');
                 } else if (not std::isspace(c)) {
                     parse_error(file.get_name(), file.get_line(), file.get_col(),
                                 "Invalid command \""s + c

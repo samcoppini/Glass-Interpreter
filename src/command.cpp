@@ -1,24 +1,36 @@
 #include "command.hpp"
 
-Command::Command(CommandType type): type(type) {
+Command::Command(CommandType type, const std::string &file_name, int line,
+                 int col):
+type(type), file_name(file_name), line(line), col(col) {
 }
 
 Command::Command(Builtin builtin_type):
-type(CommandType::BuiltinFunction), data(builtin_type) {
+type(CommandType::BuiltinFunction), data(builtin_type), file_name(""),
+line(0), col(0) {
 }
 
-Command::Command(CommandType type, double dval): type(type), data(dval) {
+Command::Command(CommandType type, double dval, const std::string &file_name,
+                 int line, int col):
+type(type), data(dval), file_name(file_name), line(line), col(col) {
 }
 
-Command::Command(CommandType type, const std::string &sval): type(type), data(sval) {
+Command::Command(CommandType type, const std::string &sval,
+                 const std::string &file_name, int line, int col):
+type(type), data(sval), file_name(file_name), line(line), col(col) {
 }
 
-Command::Command(CommandType type, const std::string &sval, std::size_t jump):
-type(type), data(sval), extra_data(jump) {
+Command::Command(CommandType type, const std::string &sval, std::size_t jump,
+                 const std::string &file_name, int line, int col):
+type(type), data(sval), extra_data(jump), file_name(file_name), line(line),
+col(col) {
 }
 
-Command::Command(CommandType type, const std::string &oname, const std::string &fname):
-type(type), data(oname), extra_data(fname) {
+Command::Command(CommandType type, const std::string &oname,
+                 const std::string &fname, const std::string &file_name,
+                 int line, int col):
+type(type), data(oname), extra_data(fname), file_name(file_name), line(line),
+col(col) {
 }
 
 CommandType Command::get_type() const {
@@ -47,4 +59,16 @@ std::size_t Command::get_jump() const {
 
 std::string Command::get_additional_name() const {
     return std::get<std::string>(extra_data);
+}
+
+std::string Command::get_file_name() const {
+    return file_name;
+}
+
+int Command::get_line() const {
+    return line;
+}
+
+int Command::get_col() const {
+    return col;
 }

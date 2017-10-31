@@ -9,6 +9,12 @@
 #include <cctype>
 #include <iostream>
 
+void runtime_error(const Command &command, const std::string &err) {
+    std::cerr << "Error in " << command.get_file_name() << ", line "
+              << command.get_line() << ", col "
+              << command.get_col() << ":\n" << err << "\n";
+}
+
 Function::Function(CommandList &commands, Instance *cur_obj):
 commands(&commands), cur_obj(cur_obj) {
 }
@@ -38,7 +44,6 @@ bool Function::execute(InstanceManager &manager,
                 return globals.at(name);
             }
         } catch (const std::out_of_range &e) {
-            std::cerr << "Error! \"" << name << "\" is not defined!\n";
             return std::nullopt;
         }
     };
@@ -61,20 +66,22 @@ bool Function::execute(InstanceManager &manager,
                 auto cname = pop_stack(stack);
                 auto name = pop_stack(stack);
                 if (not name) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto name_str = name->get_name();
                 auto cname_str = cname->get_name();
                 if (not name_str) {
-                    std::cerr << "Error! Cannot assign to non-name!\n";
+                    runtime_error(command, "Cannot assign to non-name.");
                     return true;
                 } else if (not cname_str) {
-                    std::cerr << "Error! Cannot create instance of non-name!\n";
+                    runtime_error(command,
+                                  "Cannot create instance of non-name.");
                     return true;
                 }
                 if (not classes.count(*cname_str)) {
-                    std::cerr << "Error! Cannot instantiate non-class \""
-                              << *cname_str << "\"!\n";
+                    runtime_error(command, "Cannot instantiate non-class \""
+                                           + *cname_str + "\".");
                     return true;
                 }
                 auto new_inst = manager.new_instance(classes.at(*cname_str));
@@ -89,11 +96,12 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::AssignSelf: {
                 auto name = pop_stack(stack);
                 if (not name) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto name_str = name->get_name();
                 if (not name_str) {
-                    std::cerr << "Error! Cannot assign to non-name!\n";
+                    runtime_error(command, "Cannot assign to non-name.");
                     return true;
                 } else {
                     set_val(*name_str, {cur_obj});
@@ -105,11 +113,12 @@ bool Function::execute(InstanceManager &manager,
                 auto val = pop_stack(stack);
                 auto name = pop_stack(stack);
                 if (not name) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto name_str = name->get_name();
                 if (not name_str) {
-                    std::cerr << "Error! Attempted to assign to non-name!\n";
+                    runtime_error(command, "Cannot assign to non-name.");
                     return true;
                 } else {
                     set_val(*name_str, *val);
@@ -120,7 +129,8 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::DupElement: {
                 auto dup = static_cast<std::size_t>(command.get_number());
                 if (dup >= stack.size()) {
-                    std::cerr << "Error! Attempted to duplicate out-of-range stack value!\n";
+                    runtime_error(command,
+                                  "Cannot duplicate out-of-range stack value.");
                     return true;
                 }
                 stack.push_back(stack[stack.size() - dup - 1]);
@@ -130,11 +140,12 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::ExecuteFunc: {
                 auto func = pop_stack(stack);
                 if (not func) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto to_run = func->get_function();
                 if (not to_run) {
-                    std::cerr << "Error! Attempted to execute a non-function!\n";
+                    runtime_error(command, "Cannot execute a non-function.");
                     return true;
                 }
                 if (to_run->execute(manager, classes, stack, globals)) {
@@ -147,27 +158,32 @@ bool Function::execute(InstanceManager &manager,
                 auto fname = pop_stack(stack);
                 auto oname = pop_stack(stack);
                 if (not oname) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto fname_str = fname->get_name();
                 auto oname_str = oname->get_name();
                 if (not fname_str or not oname_str) {
-                    std::cerr << "Error! Attempted to retrieve value of a non-name!\n";
+                    runtime_error(command,
+                                  "Cannot retrieve value of a non-name.");
                     return true;
                 }
                 auto obj_var = get_val(*oname_str);
                 if (not obj_var) {
+                    runtime_error(command, "\"" + *oname_str
+                                           + "\" is not defined.");
                     return true;
                 }
                 auto object = obj_var->get_instance();
                 if (not object) {
-                    std::cerr << "Error! Cannot retrieve function from non-instance!\n";
+                    runtime_error(command,
+                                  "Cannot retrieve function from non-instance.");
                     return true;
                 }
                 auto func = (*object)->get_func(*fname_str);
                 if (not func) {
-                    std::cerr << "Error! \"" << *oname_str << "\" has no function \""
-                              << *fname_str << "\"!\n";
+                    runtime_error(command, *oname_str + " has no function "
+                                           + *fname_str + ".");
                     return true;
                 }
                 stack.emplace_back(*func);
@@ -177,15 +193,17 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::GetValue: {
                 auto name = pop_stack(stack);
                 if (not name) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 auto name_str = name->get_name();
                 if (not name_str) {
-                    std::cerr << "Error! Cannot retrieve value of non-name!\n";
+                    runtime_error(command, "Cannot retrieve value of non-name.");
                     return true;
                 }
                 auto val = get_val(*name_str);
                 if (not val) {
+                    runtime_error(command, "\"" + *name_str + "\" is not defined.");
                     return true;
                 }
                 stack.push_back(*val);
@@ -195,6 +213,8 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::LoopBegin: {
                 auto val = get_val(command.get_string());
                 if (not val) {
+                    runtime_error(command, "\"" + command.get_string()
+                                           + "\" is not defined.");
                     return true;
                 } else if (not *val) {
                     i = command.get_jump();
@@ -208,6 +228,7 @@ bool Function::execute(InstanceManager &manager,
 
             case CommandType::PopStack:
                 if (not pop_stack(stack)) {
+                    runtime_error(command, "Attempted to pop empty stack.");
                     return true;
                 }
                 break;
@@ -237,18 +258,20 @@ bool Function::execute(InstanceManager &manager,
             case CommandType::FuncCall: {
                 auto obj_var = get_val(command.get_string());
                 if (not obj_var) {
+                    runtime_error(command, "\"" + command.get_string()
+                                           + "\" is not defined.");
                     return true;
                 }
                 auto object = obj_var->get_instance();
                 if (not object) {
-                    std::cerr << "Error! Cannot retrieve function from non-instance!\n";
+                    runtime_error(command,
+                                  "Cannot retrieve function from non-instance.");
                     return true;
                 }
                 auto func = (*object)->get_func(command.get_additional_name());
                 if (not func) {
-                    std::cerr << "Error! \"" << command.get_string()
-                              << "\" has no function \"" << command.get_additional_name()
-                              << "\"!\n";
+                    runtime_error(command, command.get_string() + " has no function "
+                                           + command.get_additional_name() + ".");
                     return true;
                 }
                 if (func->execute(manager, classes, stack, globals)) {
@@ -261,8 +284,8 @@ bool Function::execute(InstanceManager &manager,
                 auto oname = command.get_string();
                 auto cname = command.get_additional_name();
                 if (not classes.count(cname)) {
-                    std::cerr << "Error! Cannot instantiate non-class \""
-                              << cname << "\"!\n";
+                    runtime_error(command, "Cannot instantiate non-class "
+                                           + cname + ".");
                     return true;
                 }
                 auto new_inst = manager.new_instance(classes.at(cname));
@@ -288,7 +311,6 @@ bool Function::execute(InstanceManager &manager,
 // was empty, in which case it returns std::nullopt
 std::optional<Variable> pop_stack(std::vector<Variable> &stack) {
     if (stack.size() == 0) {
-        std::cerr << "Error! Attempted to pop empty stack!\n";
         return std::nullopt;
     } else {
         auto back_val = stack.back();

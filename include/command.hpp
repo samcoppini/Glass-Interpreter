@@ -42,13 +42,27 @@ class Command {
         std::variant<std::string, double, Builtin> data;
         std::variant<std::size_t, std::string> extra_data;
 
+        std::string file_name;
+        int line, col;
+
     public:
-        Command(CommandType type);
         Command(Builtin builtin_type);
-        Command(CommandType type, double dval);
-        Command(CommandType type, const std::string &sval);
-        Command(CommandType type, const std::string &sval, std::size_t jump);
-        Command(CommandType type, const std::string &oname, const std::string &fname);
+
+        Command(CommandType type, const std::string &file_name, int line,
+                int col);
+
+        Command(CommandType type, double dval, const std::string &file_name,
+                int line, int col);
+
+        Command(CommandType type, const std::string &sval,
+                const std::string &file_name, int line, int col);
+
+        Command(CommandType type, const std::string &sval, std::size_t jump,
+                const std::string &file_name, int line, int col);
+
+        Command(CommandType type, const std::string &oname,
+                const std::string &fname, const std::string &file_name,
+                int line, int col);
 
         void set_jump(std::size_t new_jump);
 
@@ -58,6 +72,9 @@ class Command {
         std::string get_string() const;
         std::size_t get_jump() const;
         std::string get_additional_name() const;
+        std::string get_file_name() const;
+        int get_line() const;
+        int get_col() const;
 };
 
 using CommandList = std::vector<Command>;
