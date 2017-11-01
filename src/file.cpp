@@ -35,6 +35,11 @@ std::string File::get_name() const {
     return file_name;
 }
 
+// Returns whether we've hit the end of the file yet
+bool File::eof() const {
+    return file.eof();
+}
+
 // Gets the next character in the file, and returns whether there's still more
 // to read from the file
 bool File::get(char &c) {

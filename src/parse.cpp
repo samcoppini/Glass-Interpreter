@@ -83,14 +83,21 @@ std::optional<std::string> get_name(File &file, bool paren_started = false) {
     std::string name;
     char c;
 
+    if (not paren_started) {
+        while (file.get(c) and std::isspace(c)) {
+            // Skip over any whitespace if we're expecting a name coming up
+        }
+        if (file.eof()) {
+            parse_error(file.get_name(), file.get_line(), file.get_col(),
+                        "End of file encountered when expecting name.");
+            return std::nullopt;
+        }
+    }
+
     int start_line = file.get_line();
     int start_col = file.get_col();
 
-    if (not paren_started and not file.get(c)) {
-        parse_error(file.get_name(), start_line, start_col,
-                    "End of file encountered while reading name.");
-        return std::nullopt;
-    } else if (paren_started or c == '(') {
+    if (paren_started or c == '(') {
         while (file.get(c) and c != ')') {
             if (std::isalnum(c) or c == '_') {
                 if (name.size() == 0 and std::isdigit(c)) {
@@ -124,7 +131,7 @@ std::optional<std::string> get_name(File &file, bool paren_started = false) {
     } else if (std::isalpha(c)) {
         name = c;
     } else {
-        parse_error(file.get_name(), start_line, start_col,
+        parse_error(file.get_name(), file.get_line(), file.get_col(),
                     "Expected name, but \""s + c + "\" is not a valid name.");
         return std::nullopt;
     }

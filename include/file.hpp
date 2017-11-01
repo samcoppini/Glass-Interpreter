@@ -36,6 +36,8 @@ class File {
 
         std::string get_name() const;
 
+        bool eof() const;
+
         bool get(char &c);
 
         void unget();
