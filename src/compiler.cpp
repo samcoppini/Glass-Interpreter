@@ -579,6 +579,14 @@ std::string escape_str(const std::string &str) {
     return new_str;
 }
 
+// Mangles a function name to ensure that the generated function name is unique
+std::string mangle_func_name(const std::string &class_name,
+                             const std::string &func_name)
+{
+    return "F" + std::to_string(class_name.size()) + class_name
+           + std::to_string(func_name.size()) + func_name;
+}
+
 // Returns a list of the names used in the source, seperated by whether it's
 // a global name, class-scope name or a local name
 std::array<std::set<std::string>, 4> get_names(const
@@ -691,8 +699,7 @@ void output_class_defs(std::ofstream &file,
                 } else {
                     file << ",\n     ";
                 }
-                file << "F" << class_name.size() << class_name
-                     << func.first.size() << func.first << "(size_t)";
+                file << mangle_func_name(class_name, func.first) << "(size_t)";
             }
         }
         if (not is_first) {
@@ -710,8 +717,7 @@ void output_class_defs(std::ofstream &file,
                 file << ",\n\t";
             }
             if (class_info.get_functions().count(var_info)) {
-                file << "F" << class_name.size() << class_name
-                     << var_info.size() << var_info;
+                file << mangle_func_name(class_name, var_info);
             } else {
                 file << "NULL";
             }
@@ -724,8 +730,7 @@ void output_class_defs(std::ofstream &file,
                 file << ",\n\t";
             }
             if (class_info.get_functions().count(var_info)) {
-                file << "F" << class_name.size() << class_name
-                     << var_info.size() << var_info;
+                file << mangle_func_name(class_name, var_info);
             } else {
                 file << "NULL";
             }
@@ -736,8 +741,8 @@ void output_class_defs(std::ofstream &file,
              << "\tsize_t index = get_free_inst_index();\n"
              << "\tget_inst(index)->class = &C_" << class_name << ";\n";
         if (class_info.get_functions().count("c__")) {
-            file << "\tF" << class_name.size() << class_name
-                 << "3c__(index);\n";
+            file << "\t" << mangle_func_name(class_name, "c__")
+                 << "(index);\n";
         }
         file << "\treturn index;\n}\n";
     }
@@ -998,8 +1003,8 @@ void output_functions(std::ofstream &file,
             {
                 continue;
             }
-            file << "\nvoid F" << class_name.size() << class_name
-                 << func_name.size() << func_name << "(size_t this) {\n";
+            file << "\nvoid " << mangle_func_name(class_name, func_name)
+                 << "(size_t this) {\n";
 
             output_commands(file, commands);
             file << "}\n";
@@ -1047,7 +1052,7 @@ bool compile_classes(const std::map<std::string, Class> &classes,
     } else {
         func_vars.insert("c__");
     }
-    
+
     output_name_enums(file, global_vars, class_vars, func_vars, local_vars);
 
     for (auto &line: COMPILED_CODE_DEFS) {
