@@ -1031,8 +1031,23 @@ bool compile_classes(const std::map<std::string, Class> &classes,
     }
 
     auto [global_vars, class_vars, func_vars, local_vars] = get_names(classes);
+
+    // Make sure that the main class is included in the output source
     global_vars.insert("M");
-    class_vars.insert("c__");
+
+    // Instances in the compiled code MUST have at least one variable, so if
+    // there aren't any other class-level variables, we insert the constructor
+    // into the list of class vars. If there are other class vars, we instead
+    // insert c__ into the list of functions where it rightfully belongs
+    if (class_vars.size() == 0) {
+        class_vars.insert("c__");
+        // Make sure to remove the constructor from the list of functions
+        // if it's called directly
+        func_vars.erase("c__");
+    } else {
+        func_vars.insert("c__");
+    }
+    
     output_name_enums(file, global_vars, class_vars, func_vars, local_vars);
 
     for (auto &line: COMPILED_CODE_DEFS) {
