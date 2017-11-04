@@ -256,8 +256,6 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
             }
             if (auto str = top->get_string()) {
                 std::cout << *str;
-            } else if (auto name = top->get_name()) {
-                std::cout << *name;
             } else {
                 std::cerr << "Error! Attempted to output non-string as string!\n";
                 return true;
