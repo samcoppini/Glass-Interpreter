@@ -22,14 +22,14 @@ type(type), data(sval), file_name(file_name), line(line), col(col) {
 
 Command::Command(CommandType type, const std::string &sval, std::size_t jump,
                  const std::string &file_name, int line, int col):
-type(type), data(sval), extra_data(jump), file_name(file_name), line(line),
+type(type), data(std::pair{jump, sval}), file_name(file_name), line(line),
 col(col) {
 }
 
-Command::Command(CommandType type, const std::string &oname,
-                 const std::string &fname, const std::string &file_name,
+Command::Command(CommandType type, const std::string &name1,
+                 const std::string &name2, const std::string &file_name,
                  int line, int col):
-type(type), data(oname), extra_data(fname), file_name(file_name), line(line),
+type(type), data(std::pair{name1, name2}), file_name(file_name), line(line),
 col(col) {
 }
 
@@ -50,15 +50,23 @@ std::string Command::get_string() const {
 }
 
 void Command::set_jump(std::size_t new_jump) {
-    extra_data = new_jump;
+    std::get<std::pair<std::size_t, std::string>>(data).first = new_jump;
 }
 
 std::size_t Command::get_jump() const {
-    return std::get<std::size_t>(extra_data);
+    return std::get<std::pair<std::size_t, std::string>>(data).first;
 }
 
-std::string Command::get_additional_name() const {
-    return std::get<std::string>(extra_data);
+std::string Command::get_loop_var() const {
+    return std::get<std::pair<std::size_t, std::string>>(data).second;
+}
+
+std::string Command::get_first_name() const {
+    return std::get<std::pair<std::string, std::string>>(data).first;
+}
+
+std::string Command::get_second_name() const {
+    return std::get<std::pair<std::string, std::string>>(data).second;
 }
 
 std::string Command::get_file_name() const {

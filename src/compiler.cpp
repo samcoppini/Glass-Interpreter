@@ -615,21 +615,21 @@ std::map<std::string, Class> &classes)
     for (auto &class_info: classes) {
         for (auto &func_info: class_info.second.get_functions()) {
             for (auto &command: func_info.second) {
-                if (command.get_type() == CommandType::PushName or
-                    command.get_type() == CommandType::LoopBegin)
-                {
+                if (command.get_type() == CommandType::PushName) {
                     add_name(command.get_string());
+                } else if (command.get_type() == CommandType::LoopBegin) {
+                    add_name(command.get_loop_var());
                 } else if (command.get_type() == CommandType::FuncCall) {
-                    add_name(command.get_string());
-                    auto func_name = command.get_additional_name();
+                    add_name(command.get_first_name());
+                    auto func_name = command.get_second_name();
                     if (std::islower(func_name[0])) {
                         func_vars.insert(func_name);
                     } else {
                         add_name(func_name);
                     }
                 } else if (command.get_type() == CommandType::NewInst) {
-                    add_name(command.get_string());
-                    add_name(command.get_additional_name());
+                    add_name(command.get_first_name());
+                    add_name(command.get_second_name());
                 }
             }
         }
@@ -886,14 +886,14 @@ void output_commands(std::ofstream &file, const CommandList &commands) {
 
             case CommandType::LoopBegin: {
                 std::string new_str = "while (";
-                if (command.get_string()[0] == '_') {
-                    new_str += "is_true(&local_vars[N_" + command.get_string()
+                if (command.get_loop_var()[0] == '_') {
+                    new_str += "is_true(&local_vars[N_" + command.get_loop_var()
                                + " - NUM_GLOBAL_VARS - NUM_FUNC_VARS";
-                } else if (std::islower(command.get_string()[0])) {
+                } else if (std::islower(command.get_loop_var()[0])) {
                     new_str += "is_true(&get_inst(this)->vars[N_"
-                               + command.get_string() + " - NUM_GLOBAL_VARS";
+                               + command.get_loop_var() + " - NUM_GLOBAL_VARS";
                 } else {
-                    new_str += "is_true(&global_vars[N_" + command.get_string();
+                    new_str += "is_true(&global_vars[N_" + command.get_loop_var();
                 }
                 add_lines(new_str + "])) {");
                 tab_level++;
@@ -939,33 +939,33 @@ void output_commands(std::ofstream &file, const CommandList &commands) {
 
             case CommandType::FuncCall: {
                 std::string new_str = "temp = ";
-                if (command.get_string()[0] == '_') {
-                    new_str += "local_vars[N_" + command.get_string()
+                if (command.get_first_name()[0] == '_') {
+                    new_str += "local_vars[N_" + command.get_first_name()
                                + " - NUM_GLOBAL_VARS - NUM_FUNC_VARS";
-                } else if (std::islower(command.get_string()[0])) {
-                    new_str += "get_inst(this)->vars[N_" + command.get_string()
+                } else if (std::islower(command.get_first_name()[0])) {
+                    new_str += "get_inst(this)->vars[N_" + command.get_first_name()
                                + " - NUM_GLOBAL_VARS";
                 } else {
-                    new_str += "global_vars[N_" + command.get_string();
+                    new_str += "global_vars[N_" + command.get_first_name();
                 }
                 new_str += "];";
                 add_lines(
                     new_str,
-                    "if (N_" + command.get_additional_name() + " < NUM_GLOBAL_VARS)",
+                    "if (N_" + command.get_second_name() + " < NUM_GLOBAL_VARS)",
                     "\terror(\"Invalid function name!\\n\");",
                     "if (temp.type != TYPE_INST)",
                     "\terror(\"Cannot retrieve function from non-instance!\\n\");",
                     "if ((*get_inst(temp.val.ival)->class)[N_"
-                    + command.get_additional_name() + " - NUM_GLOBAL_VARS] == NULL)",
+                    + command.get_second_name() + " - NUM_GLOBAL_VARS] == NULL)",
                     "\terror(\"Cannot execute non-existent function!\\n\");",
-                    "(*get_inst(temp.val.ival)->class)[N_" + command.get_additional_name()
+                    "(*get_inst(temp.val.ival)->class)[N_" + command.get_second_name()
                     + " - NUM_GLOBAL_VARS](temp.val.ival);");
                 break;
             }
 
             case CommandType::NewInst: {
-                auto oname = command.get_string();
-                auto cname = command.get_additional_name();
+                auto oname = command.get_first_name();
+                auto cname = command.get_second_name();
                 add_lines(
                     "if (N_" + cname + " > NUM_GLOBAL_VARS"
                     " || factory_funcs[N_" + cname + "] == NULL)",

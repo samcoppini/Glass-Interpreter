@@ -45,10 +45,11 @@ std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
         for (const auto &[func_name, func_info]: class_info.get_functions()) {
             name_freqs[func_name] += 1;
             for (const auto &command: func_info) {
-                if (command.get_type() == CommandType::LoopBegin or
-                    command.get_type() == CommandType::PushName)
+                if (command.get_type() == CommandType::LoopBegin) {
+                    name_freqs[command.get_loop_var()] += 1;
+                } else if (command.get_type() == CommandType::PushName)
                 {
-                        name_freqs[command.get_string()] += 1;
+                    name_freqs[command.get_string()] += 1;
                 }
             }
         }
@@ -226,7 +227,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
 
                     case CommandType::LoopBegin:
                         add_to_source("/");
-                        add_to_source(get_name(command.get_string()));
+                        add_to_source(get_name(command.get_loop_var()));
                         break;
 
                     case CommandType::LoopEnd:

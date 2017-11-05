@@ -211,7 +211,7 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::LoopBegin: {
-                auto val = get_val(command.get_string());
+                auto val = get_val(command.get_loop_var());
                 if (not val) {
                     runtime_error(command, "\"" + command.get_string()
                                            + "\" is not defined.");
@@ -256,7 +256,7 @@ bool Function::execute(InstanceManager &manager,
                 break;
 
             case CommandType::FuncCall: {
-                auto obj_var = get_val(command.get_string());
+                auto obj_var = get_val(command.get_first_name());
                 if (not obj_var) {
                     runtime_error(command, "\"" + command.get_string()
                                            + "\" is not defined.");
@@ -268,10 +268,10 @@ bool Function::execute(InstanceManager &manager,
                                   "Cannot retrieve function from non-instance.");
                     return true;
                 }
-                auto func = (*object)->get_func(command.get_additional_name());
+                auto func = (*object)->get_func(command.get_second_name());
                 if (not func) {
                     runtime_error(command, command.get_string() + " has no function "
-                                           + command.get_additional_name() + ".");
+                                           + command.get_second_name() + ".");
                     return true;
                 }
                 if (func->execute(manager, classes, stack, globals)) {
@@ -281,8 +281,8 @@ bool Function::execute(InstanceManager &manager,
             }
 
             case CommandType::NewInst: {
-                auto oname = command.get_string();
-                auto cname = command.get_additional_name();
+                auto oname = command.get_first_name();
+                auto cname = command.get_second_name();
                 if (not classes.count(cname)) {
                     runtime_error(command, "Cannot instantiate non-class "
                                            + cname + ".");

@@ -36,13 +36,34 @@ enum class CommandType {
     Nop,
 };
 
+// A class for representing a single Glass command
 class Command {
     private:
+        // The type of command this is
         CommandType type;
-        std::variant<std::string, double, Builtin> data;
-        std::variant<std::size_t, std::string> extra_data;
 
+        // Variant with extra data for some specific types of commands
+        std::variant<
+            // Used for DupElement and PushNumber
+            double,
+
+            // Used for PushName and PushString
+            std::string,
+
+            // Used for BuiltinFunction
+            Builtin,
+
+            // Used for LoopBegin and LoopEnd
+            std::pair<std::size_t, std::string>,
+
+            // Used for FuncCall and NewInst
+            std::pair<std::string, std::string>
+        > data;
+
+        // The name of the file this command was found on
         std::string file_name;
+
+        // The position in the file the command was found on
         int line, col;
 
     public:
@@ -71,7 +92,9 @@ class Command {
         double get_number() const;
         std::string get_string() const;
         std::size_t get_jump() const;
-        std::string get_additional_name() const;
+        std::string get_loop_var() const;
+        std::string get_first_name() const;
+        std::string get_second_name() const;
         std::string get_file_name() const;
         int get_line() const;
         int get_col() const;
