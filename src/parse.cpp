@@ -263,8 +263,10 @@ std::optional<CommandList> get_commands(File &file) {
                                 "Unexpected \"\\\" encountered outside of a loop.");
                     return std::nullopt;
                 }
-                commands[loop_stack.top()].set_jump(commands.size());
-                add_command(CommandType::LoopEnd, "", loop_stack.top());
+                auto &loop_begin = commands[loop_stack.top()];
+                loop_begin.set_jump(commands.size());
+                add_command(CommandType::LoopEnd, loop_begin.get_loop_var(),
+                            loop_stack.top());
                 loop_stack.pop();
                 loop_locs.pop();
                 break;

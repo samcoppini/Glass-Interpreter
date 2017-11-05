@@ -222,9 +222,15 @@ bool Function::execute(InstanceManager &manager,
                 break;
             }
 
-            case CommandType::LoopEnd:
-                i = command.get_jump() - 1;
+            case CommandType::LoopEnd: {
+                auto val = get_val(command.get_loop_var());
+                // We don't need to check if this variable is defined, because
+                // the matching LoopBegin command would've failed if it wasn't
+                if (*val) {
+                    i = command.get_jump();
+                }
                 break;
+            }
 
             case CommandType::PopStack:
                 if (not pop_stack(stack)) {
