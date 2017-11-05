@@ -262,10 +262,12 @@ bool Function::execute(InstanceManager &manager,
                 break;
 
             case CommandType::FuncCall: {
-                auto obj_var = get_val(command.get_first_name());
+                auto oname = command.get_first_name();
+                auto fname = command.get_second_name();
+
+                auto obj_var = get_val(oname);
                 if (not obj_var) {
-                    runtime_error(command, "\"" + command.get_string()
-                                           + "\" is not defined.");
+                    runtime_error(command, "\"" + oname + "\" is not defined.");
                     return true;
                 }
                 auto object = obj_var->get_instance();
@@ -274,10 +276,10 @@ bool Function::execute(InstanceManager &manager,
                                   "Cannot retrieve function from non-instance.");
                     return true;
                 }
-                auto func = (*object)->get_func(command.get_second_name());
+                auto func = (*object)->get_func(fname);
                 if (not func) {
-                    runtime_error(command, command.get_string() + " has no function "
-                                           + command.get_second_name() + ".");
+                    runtime_error(command, oname + " has no function " + fname
+                                           + ".");
                     return true;
                 }
                 if (func->execute(manager, classes, stack, globals)) {
