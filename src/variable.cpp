@@ -1,3 +1,4 @@
+#include <cassert>
 #include "variable.hpp"
 
 Variable::Variable(double dval): type(VarType::Number), data(dval) {
@@ -58,6 +59,11 @@ std::optional<Instance *> Variable::get_instance() const {
     }
 }
 
+// Returns the type of the variable
+VarType Variable::get_type() const {
+    return type;
+}
+
 Variable::operator bool() const {
     if (type == VarType::Number) {
         return std::get<double>(data) != 0.0;
@@ -66,4 +72,17 @@ Variable::operator bool() const {
     } else {
         return false;
     }
+}
+
+// Returns the string representation of a type
+std::string get_type_name(VarType type) {
+    switch (type) {
+        case VarType::Function: return "function";
+        case VarType::Instance: return "instance";
+        case VarType::Name:     return "name";
+        case VarType::Number:   return "number";
+        case VarType::String:   return "string";
+    }
+    assert(false);
+    return "";
 }

@@ -59,6 +59,65 @@ void remove_builtins(std::map<std::string, Class> &classes) {
     classes.erase("V");
 }
 
+// Makes sure that the values on the top of the stack match the types required
+// by a built-in function
+bool types_match(const std::vector<Variable> &stack, const std::string &name,
+                 const std::vector<VarType> &types)
+{
+    // If there aren't enough arguments on the stack for the function, give
+    // an error message
+    if (stack.size() < types.size()) {
+        std::cerr << "Error! Built-in " << name << " method requires ";
+        if (types.size() == 1) {
+            std::cerr << "a single argument, but the stack is empty.\n";
+        } else {
+            std::cerr << types.size() << " arguments, but the stack ";
+            if (stack.size() == 0) {
+                std::cerr << "is empty.\n";
+            } else {
+                std::cerr << "only has " << stack.size() << " element"
+                          << (stack.size() > 1 ? "s": "") << "\n";
+            }
+        }
+        return false;
+    }
+
+    // Check to see whether the types of the values on the top of the stack
+    // loop the required types for the function
+    bool type_mismatch = false;
+    for (size_t i = 1; i <= types.size(); i++) {
+        if (stack[stack.size() - i].get_type() != types[types.size() - i]) {
+            type_mismatch = true;
+            break;
+        }
+    }
+
+    // If there is a value on the top of the stack that doesn't match its
+    // required type, give an error message telling the types needed for the
+    // function and the types that it got
+    if (type_mismatch) {
+        std::cerr << "Error! Built-in " << name << " method requires ";
+        if (types.size() == 1) {
+            std::cerr << "an argument of the type " << get_type_name(types[0])
+                      << "\nReceived an argument of the type "
+                      << get_type_name(stack.back().get_type()) << "\n";
+        } else {
+            std::cerr << "arguments of the following types:\n ";
+            for (auto &type: types) {
+                std::cerr << " " << get_type_name(type);
+            }
+            std::cerr << "\nReceived arguments of the following types:\n ";
+            for (size_t i = stack.size() - types.size(); i < stack.size(); i++) {
+                std::cerr << " " << get_type_name(stack[i].get_type());
+            }
+            std::cerr << "\n";
+        }
+        return false;
+    }
+
+    return true;
+}
+
 // Handles a builtin function, returning true if there was an error
 bool handle_builtin(Builtin type, std::vector<Variable> &stack,
                     std::map<std::string, Variable> &globals)
@@ -82,229 +141,157 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
             break;
 
         case Builtin::MathAdd: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.a", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't add non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 + *num2);
             break;
         }
 
         case Builtin::MathSub: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.s", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't subtract non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num2 - *num1);
             break;
         }
 
         case Builtin::MathMult: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.m", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't multiply non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 * *num2);
             break;
         }
 
         case Builtin::MathDiv: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.d", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't divide non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num2 / *num1);
             break;
         }
 
         case Builtin::MathMod: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.mod", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't perform modulo on non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(std::fmod(*num2, *num1));
             break;
         }
 
         case Builtin::MathFloor:  {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "A.f", {VarType::Number})) {
                 return true;
             }
-            auto num = top->get_number();
-            if (not num) {
-                std::cerr << "Error! Can't floor non-number!\n";
-                return true;
-            }
+            auto num = pop_stack(stack)->get_number();
             stack.emplace_back(std::floor(*num));
             break;
         }
 
         case Builtin::MathEqual: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.e", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't check equality of non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 == *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::MathNotEqual:  {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.ne", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't check nonequality of non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 != *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::MathLessThan: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.lt", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't compare non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 > *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::MathLessOrEqual: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.le", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't compare non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 >= *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::MathGreaterThan: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.gt", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't compare non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 < *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::MathGreaterOrEqual: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "A.ge", {VarType::Number, VarType::Number})) {
                 return true;
             }
-            auto num1 = stack1->get_number(), num2 = stack2->get_number();
-            if (not num1 or not num2) {
-                std::cerr << "Error! Can't compare non-numbers!\n";
-                return true;
-            }
+            auto num1 = pop_stack(stack)->get_number();
+            auto num2 = pop_stack(stack)->get_number();
             stack.emplace_back(*num1 <= *num2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::OutputStr: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "O.o", {VarType::String})) {
                 return true;
             }
-            if (auto str = top->get_string()) {
-                std::cout << *str;
-            } else {
-                std::cerr << "Error! Attempted to output non-string as string!\n";
-                return true;
-            }
+            auto str = pop_stack(stack)->get_string();
+            std::cout << *str;
             break;
         }
 
         case Builtin::OutputNumber: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "O.on", {VarType::Number})) {
                 return true;
             }
-            if (auto num = top->get_number()) {
-                std::cout << *num;
-            } else {
-                std::cerr << "Error! Attempted to output non-number as number!\n";
-                return true;
-            }
+            auto num = pop_stack(stack)->get_number();
+            std::cout << *num;
             break;
         }
 
         case Builtin::StrLength: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "S.l", {VarType::String})) {
                 return true;
             }
-            if (auto str = top->get_string()) {
-                stack.emplace_back(static_cast<double>(str->size()));
-            } else {
-                std::cerr << "Error! Cannot get length of non-string!\n";
-                return true;
-            }
+            auto str = pop_stack(stack)->get_string();
+            stack.emplace_back(static_cast<double>(str->size()));
             break;
         }
 
         case Builtin::StrIndex: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "S.i", {VarType::String, VarType::Number})) {
                 return true;
             }
-            auto num = stack1->get_number();
-            auto str = stack2->get_string();
-            if (not num) {
-                std::cerr << "Cannot get index of non-number!\n";
-                return true;
-            } else if (not str) {
-                std::cerr << "Cannot index a non-string!\n";
-                return true;
-            }
+            auto num = pop_stack(stack)->get_number();
+            auto str = pop_stack(stack)->get_string();
             if (*num < 0) {
                 stack.emplace_back(VarType::String, "");
                 break;
@@ -319,23 +306,13 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
         }
 
         case Builtin::StrReplace: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack),
-                 stack3 = pop_stack(stack);
-            if (not stack3) {
+            if (not types_match(stack, "S.si", {VarType::String, VarType::Number, VarType::String})) {
                 return true;
             }
-            auto string = stack3->get_string(), chr = stack1->get_string();
-            auto num = stack2->get_number();
-            if (not string) {
-                std::cerr << "Error! Cannot replace character in non-string!\n";
-                return true;
-            } else if (not num) {
-                std::cerr << "Error! Cannot use non-number as an index!\n";
-                return true;
-            } else if (not chr) {
-                std::cerr << "Error! Cannot replace character with non-string!\n";
-                return true;
-            } else if (chr->size() < 1) {
+            auto chr = pop_stack(stack)->get_string();
+            auto num = pop_stack(stack)->get_number();
+            auto string = pop_stack(stack)->get_string();
+            if (chr->size() < 1) {
                 std::cerr << "Error! Need non-empty string to replace character!\n";
                 return true;
             } else if (chr->size() > 1) {
@@ -359,33 +336,21 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
         }
 
         case Builtin::StrConcatenate: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "S.a", {VarType::String, VarType::String})) {
                 return true;
             }
-            auto str1 = stack1->get_string(), str2 = stack2->get_string();
-            if (not str1 or not str2) {
-                std::cerr << "Error! Cannot concatenate non-string!\n";
-                return true;
-            }
+            auto str1 = pop_stack(stack)->get_string();
+            auto str2 = pop_stack(stack)->get_string();
             stack.emplace_back(VarType::String, *str2 + *str1);
             break;
         }
 
         case Builtin::StrSplit: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "S.d", {VarType::String, VarType::Number})) {
                 return true;
             }
-            auto string = stack2->get_string();
-            auto pos = stack1->get_number();
-            if (not string) {
-                std::cerr << "Error! Cannot split non-string!\n";
-                return true;
-            } else if (not pos) {
-                std::cerr << "Error! Cannot use non-number as index to split string!\n";
-                return true;
-            }
+            auto pos = pop_stack(stack)->get_number();
+            auto string = pop_stack(stack)->get_string();
             if (*pos < 0) {
                 stack.emplace_back(VarType::String, "");
                 stack.emplace_back(VarType::String, *string);
@@ -405,43 +370,30 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
         }
 
         case Builtin::StrEqual: {
-            auto stack1 = pop_stack(stack), stack2 = pop_stack(stack);
-            if (not stack2) {
+            if (not types_match(stack, "S.e", {VarType::String, VarType::String})) {
                 return true;
             }
-            auto str1 = stack1->get_string(), str2 = stack2->get_string();
-            if (not str1 or not str2) {
-                std::cerr << "Error! Cannot check equality of non-strings!\n";
-                return true;
-            }
+            auto str1 = pop_stack(stack)->get_string();
+            auto str2 = pop_stack(stack)->get_string();
             stack.emplace_back(*str1 == *str2 ? 1.0: 0.0);
             break;
         }
 
         case Builtin::StrNumtoChar: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "S.ns", {VarType::Number})) {
                 return true;
             }
-            auto num = top->get_number();
-            if (not num) {
-                std::cerr << "Error! Cannot convert non-number from number to character!\n";
-                return true;
-            }
+            auto num = pop_stack(stack)->get_number();
             stack.emplace_back(VarType::String, std::string{(char) *num});
             break;
         }
 
         case Builtin::StrChartoNum: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "S.sn", {VarType::String})) {
                 return true;
             }
-            auto chr = top->get_string();
-            if (not chr) {
-                std::cerr << "Error! Cannot convert non-string from character to number!\n";
-                return true;
-            } else if (chr->size() == 0) {
+            auto chr = pop_stack(stack)->get_string();
+            if (chr->size() == 0) {
                 std::cerr << "Error! Cannot convert empty string to number!\n";
                 return true;
             } else if (chr->size() > 1) {
@@ -462,15 +414,10 @@ bool handle_builtin(Builtin type, std::vector<Variable> &stack,
         }
 
         case Builtin::VarDelete: {
-            auto top = pop_stack(stack);
-            if (not top) {
+            if (not types_match(stack, "V.d", {VarType::Name})) {
                 return true;
             }
-            auto name = top->get_name();
-            if (not name) {
-                std::cerr << "Error! Cannot delete non-name!\n";
-                return true;
-            }
+            auto name = pop_stack(stack)->get_name();
             for (auto c: *name) {
                 if (not std::isdigit(c)) {
                     std::cerr << "Error! Cannot delete non-generated name!\n";

@@ -31,7 +31,10 @@ class Variable {
         std::optional<double> get_number() const;
         std::optional<Function> get_function() const;
         std::optional<Instance *> get_instance() const;
+        VarType get_type() const;
         explicit operator bool() const;
 };
+
+std::string get_type_name(VarType type);
 
 #endif
