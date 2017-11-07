@@ -20,6 +20,7 @@ class Function {
 
     public:
         Function(CommandList &commands, Instance *cur_obj);
+        void move_instance(Instance *old_insts, Instance *new_insts);
         Instance *get_obj() const;
         bool execute(InstanceManager &manager,
                      std::map<std::string, Class> &classes,

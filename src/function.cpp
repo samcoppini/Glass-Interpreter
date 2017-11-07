@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cctype>
+#include <cstddef>
 #include <iostream>
 
 void runtime_error(const Command &command, const std::string &err) {
@@ -23,6 +24,13 @@ Instance *Function::get_obj() const {
     return cur_obj;
 }
 
+// If the array with the instances is moved, this function updates the Instance
+// pointer in the function to be in the right position
+void Function::move_instance(Instance *old_insts, Instance *new_insts) {
+    std::ptrdiff_t index = cur_obj - old_insts;
+    cur_obj = &new_insts[index];
+}
+
 // Executes a function, given references to the classes, stack and global
 // variables. Returns whether there was an error of some sort
 bool Function::execute(InstanceManager &manager,
@@ -31,7 +39,7 @@ bool Function::execute(InstanceManager &manager,
                        std::map<std::string, Variable> &globals)
 {
     std::map<std::string, Variable> locals;
-    manager.new_scope(cur_obj, &locals);
+    manager.new_scope(this, &locals);
 
     // Gets the value of a name from the proper context
     auto get_val = [&] (const std::string &name) -> std::optional<Variable> {
