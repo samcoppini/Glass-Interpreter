@@ -1,5 +1,7 @@
 #include "file.hpp"
 
+#include <cassert>
+
 File::File(const std::string &file_name):
 file_name(file_name), file(file_name), last_char('\0'), line(1), col(0),
 last_is_next(false) {
@@ -53,7 +55,9 @@ bool File::get(char &c) {
     return not file.eof();
 }
 
-// Goes back a character in the file
+// Goes back a character in the file. Cannot be done twice in a row without
+// a get() in between the two unget() calls
 void File::unget() {
+    assert(not last_is_next);
     last_is_next = true;
 }
