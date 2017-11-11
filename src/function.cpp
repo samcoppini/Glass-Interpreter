@@ -90,6 +90,9 @@ bool Function::execute(InstanceManager &manager,
                 set_val(*name_str, new_inst);
                 auto ctor = new_inst->get_func("c__");
                 if (ctor and ctor->execute(manager, classes, stack, globals)) {
+                    output_stack_trace_line(command.get_file_name(),
+                                            command.get_line(),
+                                            command.get_col());
                     return true;
                 }
                 break;
@@ -262,6 +265,7 @@ bool Function::execute(InstanceManager &manager,
 
             case CommandType::BuiltinFunction:
                 if (handle_builtin(command.get_builtin(), stack, globals)) {
+                    std::cerr << "Stack trace:\n";
                     return true;
                 }
                 break;
@@ -308,6 +312,9 @@ bool Function::execute(InstanceManager &manager,
                 set_val(oname, new_inst);
                 auto ctor = new_inst->get_func("c__");
                 if (ctor and ctor->execute(manager, classes, stack, globals)) {
+                    output_stack_trace_line(command.get_file_name(),
+                                            command.get_line(),
+                                            command.get_col());
                     return true;
                 }
                 break;
