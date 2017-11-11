@@ -24,6 +24,7 @@ class Instance {
 
         std::optional<Function> get_func(const std::string &name);
         const Variable &get_var(const std::string &name) const;
+        const std::string &get_type_name() const;
 };
 
 #endif

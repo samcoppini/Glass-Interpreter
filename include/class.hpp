@@ -10,8 +10,11 @@ class Class {
     private:
         std::map<std::string, CommandList> functions;
         std::vector<std::string> parents;
+        std::string name;
 
     public:
+        Class(const std::string &name);
+
         bool add_function(const std::string &name, const CommandList &commands);
         bool add_parent(const std::string &class_name);
         bool has_function(const std::string &name) const;
@@ -19,6 +22,7 @@ class Class {
         void handle_inheritance(std::map<std::string, Class> &classes);
         const std::map<std::string, CommandList> &get_functions() const;
         const std::vector<std::string> &get_parents() const;
+        const std::string &get_name() const;
 };
 
 #endif

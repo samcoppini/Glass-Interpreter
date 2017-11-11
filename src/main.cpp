@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
                                   << "\" defined multiple times!\n";
                         return 1;
                     }
-                    classes[name] = func;
+                    classes.insert_or_assign(name, func);
                 }
                 directory = to_read.substr(0, to_read.find_last_of("/\\") + 1);
                 for (auto &file: new_files) {
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     } else if (classes.count("M") == 0) {
         std::cerr << "Error! Class \"M\" is not defined!\n";
         return 1;
-    } else if (not classes["M"].has_function("m")) {
+    } else if (not classes.at("M").has_function("m")) {
         std::cerr << "Error! \"m\" function is not defined for class \"M\".\n";
         return 1;
     }
@@ -164,10 +164,10 @@ int main(int argc, char *argv[]) {
         std::map<std::string, Variable> globals;
         InstanceManager manager{stack, globals};
 
-        globals.emplace("_Main", manager.new_instance(classes["M"]));
+        globals.emplace("_Main", manager.new_instance(classes.at("M")));
         auto main_obj = *globals.at("_Main").get_instance();
 
-        if (classes["M"].has_function("c__")) {
+        if (classes.at("M").has_function("c__")) {
             auto ctor = main_obj->get_func("c__");
             if (ctor->execute(manager, classes, stack, globals)) {
                 return 1;

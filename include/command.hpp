@@ -66,6 +66,10 @@ class Command {
         // The position in the file the command was found on
         int line, col;
 
+        // The secondary position of the command if it is made up of
+        // multiple tokens
+        int line2 = 0, col2 = 0;
+
     public:
         Command(Builtin builtin_type);
 
@@ -83,7 +87,7 @@ class Command {
 
         Command(CommandType type, const std::string &oname,
                 const std::string &fname, const std::string &file_name,
-                int line, int col);
+                int line, int col, int line2 = 0, int col2 = 0);
 
         void set_jump(std::size_t new_jump);
 
@@ -98,6 +102,8 @@ class Command {
         std::string get_file_name() const;
         int get_line() const;
         int get_col() const;
+        int get_2nd_line() const;
+        int get_2nd_col() const;
 };
 
 using CommandList = std::vector<Command>;

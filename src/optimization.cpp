@@ -16,7 +16,9 @@ COMMAND_REPLACEMENTS = {
                                     commands[end_index - 2].get_string(),
                                     commands[end_index - 1].get_file_name(),
                                     commands[end_index - 1].get_line(),
-                                    commands[end_index - 1].get_col()};
+                                    commands[end_index - 1].get_col(),
+                                    commands[end_index].get_line(),
+                                    commands[end_index].get_col()};
          commands[end_index - 1] = {CommandType::Nop, "", 0, 0};
          commands[end_index - 2] = {CommandType::Nop, "", 0, 0};
          commands[end_index - 3] = {CommandType::Nop, "", 0, 0};

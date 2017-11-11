@@ -3,6 +3,9 @@
 
 #include "class.hpp"
 
+Class::Class(const std::string &name): name(name) {
+}
+
 // Adds a function to a class, unless a function with the same name already
 // exists within the class. Returns whether or not the class already had
 // a function with the name
@@ -42,10 +45,10 @@ CommandList &Class::get_function(const std::string &name) {
 // constructors first
 void Class::handle_inheritance(std::map<std::string, Class> &classes) {
     for (auto &parent: parents) {
-        if (classes[parent].parents.size() > 0) {
-            classes[parent].handle_inheritance(classes);
+        if (classes.at(parent).parents.size() > 0) {
+            classes.at(parent).handle_inheritance(classes);
         }
-        for (const auto &[name, func]: classes[parent].functions) {
+        for (const auto &[name, func]: classes.at(parent).functions) {
             if (name != "c__" or not functions.count("c__")) {
                 add_function(name, func);
             } else {
@@ -64,6 +67,10 @@ const std::map<std::string, CommandList> &Class::get_functions() const {
 // Returns all of the parents of a class
 const std::vector<std::string> &Class::get_parents() const {
     return parents;
+}
+
+const std::string &Class::get_name() const {
+    return name;
 }
 
 // Checks the inheritance graph of the given classes, making sure that there

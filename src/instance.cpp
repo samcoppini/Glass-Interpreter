@@ -15,10 +15,15 @@ std::optional<Function> Instance::get_func(const std::string &name) {
     if (not type.has_function(name)) {
         return std::nullopt;
     }
-    return {{type.get_function(name), this}};
+    return {{type.get_function(name), name, this}};
 }
 
 // Returns the value of the variable in the instance
 const Variable &Instance::get_var(const std::string &name) const {
     return vars.at(name);
+}
+
+// Returns the name of the instance's class
+const std::string &Instance::get_type_name() const {
+    return type.get_name();
 }

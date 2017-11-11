@@ -17,9 +17,14 @@ class Function {
     private:
         CommandList *commands;
         Instance *cur_obj;
+        std::string method_name;
+
+        void runtime_error(const Command &command, const std::string &err) const;
+        void output_stack_trace_line(const std::string &filename, int line,
+                                     int col) const;
 
     public:
-        Function(CommandList &commands, Instance *cur_obj);
+        Function(CommandList &commands, const std::string &name, Instance *cur_obj);
         void move_instance(Instance *old_insts, Instance *new_insts);
         Instance *get_obj() const;
         bool execute(InstanceManager &manager,

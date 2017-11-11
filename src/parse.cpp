@@ -374,7 +374,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
         return std::nullopt;
     }
 
-    Class new_class;
+    Class new_class{*class_name};
     char c;
     while (file.get(c) and c != '}') {
         if (std::isspace(c)) {
@@ -468,7 +468,7 @@ get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
                             "Class " + class_name + " is defined multiple times.");
                 return std::nullopt;
             }
-            classes[class_name] = new_class;
+            classes.insert_or_assign(class_name, new_class);
         } else if (not pedantic and c == '"') {
             auto new_file = get_string(file);
             if (not new_file) {

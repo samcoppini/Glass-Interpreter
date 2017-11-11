@@ -10,14 +10,8 @@
 #include <cstddef>
 #include <iostream>
 
-void runtime_error(const Command &command, const std::string &err) {
-    std::cerr << "Error in " << command.get_file_name() << ", line "
-              << command.get_line() << ", col "
-              << command.get_col() << ":\n" << err << "\n";
-}
-
-Function::Function(CommandList &commands, Instance *cur_obj):
-commands(&commands), cur_obj(cur_obj) {
+Function::Function(CommandList &commands, const std::string &name, Instance *cur_obj):
+commands(&commands), cur_obj(cur_obj), method_name(name) {
 }
 
 Instance *Function::get_obj() const {
@@ -157,6 +151,9 @@ bool Function::execute(InstanceManager &manager,
                     return true;
                 }
                 if (to_run->execute(manager, classes, stack, globals)) {
+                    output_stack_trace_line(command.get_file_name(),
+                                            command.get_line(),
+                                            command.get_col());
                     return true;
                 }
                 break;
@@ -291,6 +288,9 @@ bool Function::execute(InstanceManager &manager,
                     return true;
                 }
                 if (func->execute(manager, classes, stack, globals)) {
+                    output_stack_trace_line(command.get_file_name(),
+                                            command.get_2nd_line(),
+                                            command.get_2nd_col());
                     return true;
                 }
                 break;
@@ -321,6 +321,23 @@ bool Function::execute(InstanceManager &manager,
 
     manager.unwind_scope();
     return false;
+}
+
+void Function::runtime_error(const Command &command, const std::string &err) const {
+    std::cerr << "Error in " << command.get_file_name() << ", line "
+              << command.get_line() << ", col "
+              << command.get_col() << ":\n" << err << "\n\n"
+              << "Stack trace:\n";
+    output_stack_trace_line(command.get_file_name(), command.get_line(),
+                            command.get_col());
+}
+
+void Function::output_stack_trace_line(const std::string &filename, int line,
+                                       int col) const
+{
+    std::cerr << "   "  << cur_obj->get_type_name() << "." << method_name
+              << " on line " << line << ", col " << col << " in " << filename
+              << "\n";
 }
 
 // Pops the stack, returning the value of the former top, unless the stack

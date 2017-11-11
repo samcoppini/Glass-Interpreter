@@ -39,12 +39,12 @@ const std::map<Builtin, std::pair<std::string, std::string>> BUILTIN_INFO = {
 
 std::map<std::string, Class> get_builtins() {
     std::map<std::string, Class> builtins = {
-        {"A", {}}, {"I", {}}, {"O", {}}, {"S", {}}, {"V", {}}
+        {"A", {"A"}}, {"I", {"I"}}, {"O", {"O"}}, {"S", {"S"}}, {"V", {"V"}}
     };
 
     for (auto &[builtin, builtin_info]: BUILTIN_INFO) {
         auto &[builtin_class, builtin_name] = builtin_info;
-        builtins[builtin_class].add_function(builtin_name, {builtin});
+        builtins.at(builtin_class).add_function(builtin_name, {builtin});
     }
 
     return builtins;

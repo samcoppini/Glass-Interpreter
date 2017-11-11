@@ -28,9 +28,9 @@ col(col) {
 
 Command::Command(CommandType type, const std::string &name1,
                  const std::string &name2, const std::string &file_name,
-                 int line, int col):
+                 int line, int col, int line2, int col2):
 type(type), data(std::pair{name1, name2}), file_name(file_name), line(line),
-col(col) {
+col(col), line2(line2), col2(col2) {
 }
 
 CommandType Command::get_type() const {
@@ -79,4 +79,12 @@ int Command::get_line() const {
 
 int Command::get_col() const {
     return col;
+}
+
+int Command::get_2nd_line() const {
+    return line2;
+}
+
+int Command::get_2nd_col() const {
+    return col2;
 }
