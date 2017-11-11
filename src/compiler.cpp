@@ -1,5 +1,6 @@
 #include "builtins.hpp"
 #include "compiler.hpp"
+#include "string-things.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -564,20 +565,6 @@ const std::map<Builtin, std::vector<std::string>> BUILTIN_IMPLS {{
         "dynamic_vars.elems[temp.name - MIN_DYNAMIC_VAR].type = TYPE_UNDEFINED;"
     }}
 }};
-
-// Returns the escaped version of a string
-std::string escape_str(const std::string &str) {
-    std::string new_str;
-    for (auto &c: str) {
-        switch (c) {
-            case '\n': new_str += "\\n";  break;
-            case '\\': new_str += "\\\\"; break;
-            case '"':  new_str += "\\\""; break;
-            default:   new_str += c;      break;
-        }
-    }
-    return new_str;
-}
 
 // Mangles a function name to ensure that the generated function name is unique
 std::string mangle_func_name(const std::string &class_name,

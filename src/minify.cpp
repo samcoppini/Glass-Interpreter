@@ -1,6 +1,7 @@
-#include "minify.hpp"
 #include "builtins.hpp"
 #include "class.hpp"
+#include "minify.hpp"
+#include "string-things.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -14,27 +15,6 @@ const std::set<std::string> PREDEFINED_NAMES = {
     "l", "le", "lt", "m", "n", "ne", "ns", "mod", "o", "on", "s", "si", "sn",
     "c__", "d__"
 };
-
-// Reproduce a string, converting characters to the appropriate escape sequences
-std::string escape_string(const std::string &str) {
-    std::string new_str;
-    for (const auto &c: str) {
-        switch (c) {
-            case '"':    new_str += "\\\""; break;
-            case '\\':   new_str += "\\\\"; break;
-            case '\a':   new_str += "\\a";  break;
-            case '\b':   new_str += "\\b";  break;
-            case '\x1b': new_str += "\\e";  break;
-            case '\f':   new_str += "\\f";  break;
-            case '\n':   new_str += "\\n";  break;
-            case '\r':   new_str += "\\r";  break;
-            case '\t':   new_str += "\\t";  break;
-            case '\v':   new_str += "\\f";  break;
-            default:     new_str += c;      break;
-        }
-    }
-    return new_str;
-}
 
 // Given the list of classes, returns a list of names, ordered by how
 // frequently they appear, with the most frequent names being first
@@ -257,7 +237,7 @@ std::string get_minified_source(std::map<std::string, Class> &classes,
                         break;
 
                     case CommandType::PushString:
-                        add_to_source("\"" + escape_string(command.get_string()) + "\"");
+                        add_to_source("\"" + escape_str(command.get_string()) + "\"");
                         break;
 
                     case CommandType::Return:
