@@ -1,0 +1,9 @@
+{(Name)
+    [(c__)
+        (name)1=,
+    ]
+
+    [(getName)
+        (name)*
+    ]
+}

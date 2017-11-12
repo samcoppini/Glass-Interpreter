@@ -1,0 +1,252 @@
+'Base class for all the other commands to inherit from'
+{(Command)
+    [(c__)
+        (next)<1>=
+    ]
+
+    [(setNext)
+        (next)1=,
+    ]
+
+    [(getNext)
+        (next)*
+    ]
+
+    [(print)
+    ]
+
+    [(execute)
+    ]
+}
+
+{(AssignClass)(Command)
+    [(print)
+        (_o)O!"!"(_o)o.?
+    ]
+
+    [(execute)
+        (_class)1=,
+        (_name)1=,
+
+        (_class)*(_obj)(Instance)!
+        (_name)*(_obj)*(ExecutingObj)(set).?
+    ]
+}
+
+{(AssignSelf)(Command)
+    [(print)
+        (_o)O!"$"(_o)o.?
+    ]
+
+    [(execute)
+        (ExecutingObj)*(ExecutingObj)(set).?
+    ]
+}
+
+{(AssignValue)(Command)
+    [(print)
+        (_o)O!"="(_o)o.?
+    ]
+
+    [(execute)
+        (ExecutingObj)(set).?
+    ]
+}
+
+{(DupElement)(Command)
+    [(c__)
+        (_str)(String)!(_str)(strToNum).?(toPush)1=,
+    ]
+
+    [(print)
+        (_o)O!
+        "("(_o)o.?
+        (toPush)*(_o)(on).?
+        ")"(_o)o.?
+    ]
+
+    [(findDupElement)
+        (_a)A!
+        (_self)$
+
+        (_temp)(toPush)*<0>(_a)e.?=
+        /(_temp)
+            (toPush)1=^
+        \
+
+        (_temp)1=,
+        (toPush)(toPush)*<1>(_a)s.?=
+        (_self)(findDupElement).?
+        (_temp)*
+    ]
+
+    [(execute)
+        (_self)$
+
+        (_realPush)(toPush)*=
+        (_self)(findDupElement).?
+        (toPush)*
+        (toPush)(_realPush)*=
+    ]
+}
+
+{(ExecuteFunc)(Command)
+    [(print)
+        (_o)O!"?"(_o)o.?
+    ]
+
+    [(execute)
+        (_func)1=,
+        (_func)(execute).?
+    ]
+}
+
+{(GetFunction)(Command)
+    [(print)
+        (_o)O!"."(_o)o.?
+    ]
+
+    [(execute)
+        (_funcName)1=,
+        (ExecutingObj)(get).?
+        (_obj)1=,
+        (_funcName)*(_obj)*
+        (_func)(Function)!
+        (_func)*
+    ]
+}
+
+{(GetValue)(Command)
+    [(print)
+        (_o)O!"*"(_o)o.?
+    ]
+
+    [(execute)
+        (ExecutingObj)(get).?
+    ]
+}
+
+{(LoopBegin)(Command)
+    [(c__)
+        (name)(Name)!
+    ]
+
+    [(setNext)
+        (loopBegin)1=,
+        (next)(loopBegin)*=
+    ]
+
+    [(setLoopEnd)
+        (loopEnd)1=,
+    ]
+
+    [(print)
+        (_o)O!
+        "/("(_o)o.?
+        (name)(getName).?(_o)o.?
+        ")"(_o)o.?
+    ]
+
+    [(execute)
+        (_val)(name)*(ExecutingObj)(get).?=
+        /(_val)
+            (next)(loopBegin)*=^
+        \
+        (next)(loopEnd)(getLoopEnd).?=
+    ]
+}
+
+{(LoopEnd)(Command)
+    [(setNext)
+        (loopEnd)1=,
+        (next)(loopEnd)*=
+    ]
+
+    [(getLoopEnd)
+        (loopEnd)*
+    ]
+
+    [(setLoopBegin)
+        (loopBegin)1=,
+    ]
+
+    [(print)
+        (_o)O!
+        "\\"(_o)o.?
+    ]
+
+    [(execute)
+        (next)(loopBegin)*=
+    ]
+}
+
+{(PopStack)(Command)
+    [(print)
+        (_o)O!","(_o)o.?
+    ]
+
+    [(execute)
+        ,
+    ]
+}
+
+{(PushName)(Command)
+    [(c__)
+        (toPush)(Name)!
+    ]
+
+    [(print)
+        (_o)O!
+        "("(_o)o.?
+        (toPush)(getName).?(_o)o.?
+        ")"(_o)o.?
+    ]
+
+    [(execute)
+        (toPush)*
+    ]
+}
+
+{(PushNumber)(Command)
+    [(c__)
+        (_str)(String)!(_str)(strToNum).?(toPush)1=,
+    ]
+
+    [(print)
+        (_o)O!
+        "<"(_o)o.?
+        (toPush)*(_o)(on).?
+        ">"(_o)o.?
+    ]
+
+    [(execute)
+        (toPush)*
+    ]
+}
+
+{(PushString)(Command)
+    [(c__)
+        (toPush)1=,
+    ]
+
+    [(print)
+        (_o)O!
+        "\""(_o)o.?
+        (toPush)*(_o)o.?
+        "\""(_o)o.?
+    ]
+
+    [(execute)
+        (toPush)*
+    ]
+}
+
+{(Return)(Command)
+    [(print)
+        (_o)O!"^"(_o)o.?
+    ]
+
+    [(execute)
+        (ExecutingFunction)<0>=
+    ]
+}

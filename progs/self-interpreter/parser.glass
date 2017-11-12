@@ -1,0 +1,303 @@
+{(Parser)
+    [(getClasses)
+        (_a)A!
+        (_i)I!
+        (_s)S!
+        (_self)$
+        (_b)(Bool)!
+        (_classes)(Map)!
+
+        (_c)(_i)c.?=
+        (_temp)(_i)e.?<0>(_a)e.?(_c)*";"(_s)e.?<0>(_a)e.?(_b)a.?=
+        /(_temp)
+            (_temp)(_c)*"'"(_s)e.?=
+            /(_temp)
+                (_self)(getComment).?
+                (_temp)<0>=
+            \
+            (_temp)(_c)*"{"(_s)e.?=
+            /(_temp)
+                (_self)(getClass).?
+                (_classes)(add).?
+                (_temp)<0>=
+            \
+
+            (_c)(_i)c.?=
+            (_temp)(_i)e.?<0>(_a)e.?(_c)*";"(_s)e.?<0>(_a)e.?(_b)a.?=
+        \
+
+        'Add builtin classes so the interpreter knows that none of the builtin
+         classes have constructors'
+        (_emptyClass)(Map)!
+        (_emptyClass)*"A"(_classes)(add).?
+        (_emptyClass)*"I"(_classes)(add).?
+        (_emptyClass)*"O"(_classes)(add).?
+        (_emptyClass)*"S"(_classes)(add).?
+        (_emptyClass)*"V"(_classes)(add).?
+
+        (_classes)*
+    ]
+
+    'Returns: The name of the class
+              A map of the functions in the class'
+    [(getClass)
+        (_a)A!
+        (_i)I!
+        (_s)S!
+        (_self)$
+        (_funcs)(Map)!
+
+        (_name)(_self)(getName).?=
+
+        (_c)(_i)c.?=
+        (_temp)(_c)*"}"(_s)e.?<0>(_a)e.?=
+        /(_temp)
+            (_temp)(_c)*"'"(_s)e.?=
+            /(_temp)
+                (_self)(getComment).?
+                (_temp)<0>=
+            \
+            (_temp)(_c)*"["(_s)e.?=
+            /(_temp)
+                (_self)(getFunction).?
+                (_funcs)(add).?
+                (_temp)<0>=
+            \
+            (_c)(_i)c.?=
+            (_temp)(_c)*"}"(_s)e.?<0>(_a)e.?=
+        \
+
+        (_funcs)*(_name)*^
+    ]
+
+    'Returns: The name of the function
+              A linked list of the commands of the function'
+    [(getFunction)
+        (_a)A!
+        (_i)I!
+        (_s)S!
+        (_self)$
+        (_b)(Bool)!
+        (_str)(String)!
+
+        (_funcName)(_self)(getName).?=
+
+        (_commands)(Command)!
+        (_curCommand)(_commands)*=
+
+        (_c)(_i)c.?=
+        (_temp)(_c)*"]"(_s)e.?<0>(_a)e.?=
+        /(_temp)
+            (_newCommand)<1>=
+
+            (_temp)(_c)*"!"(_s)e.?=
+            /(_temp)
+                (_newCommand)(AssignClass)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"$"(_s)e.?=
+            /(_temp)
+                (_newCommand)(AssignSelf)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"="(_s)e.?=
+            /(_temp)
+                (_newCommand)(AssignValue)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"?"(_s)e.?=
+            /(_temp)
+                (_newCommand)(ExecuteFunc)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"."(_s)e.?=
+            /(_temp)
+                (_newCommand)(GetFunction)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"*"(_s)e.?=
+            /(_temp)
+                (_newCommand)(GetValue)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*","(_s)e.?=
+            /(_temp)
+                (_newCommand)(PopStack)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"^"(_s)e.?=
+            /(_temp)
+                (_newCommand)(Return)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"/"(_s)e.?=
+            /(_temp)
+                (_self)(getName).?
+                (_newCommand)(LoopBegin)!
+
+                'Push the new loop beginning to the stack to be connected with
+                 the matching loop end'
+                (_newCommand)*
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"\\"(_s)e.?=
+            /(_temp)
+                (_newCommand)(LoopEnd)!
+
+                (_loopBeginning)1=,
+                (_newCommand)*(_loopBeginning)(setLoopEnd).?
+                (_loopBeginning)*(_newCommand)(setLoopBegin).?
+
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"\""(_s)e.?=
+            /(_temp)
+                (_toPush)""=
+                (_c)(_i)c.?=
+                (_temp)(_c)*"\""(_s)e.?<0>(_a)e.?=
+                /(_temp)
+                    (_temp)(_c)*"\\"(_s)e.?=
+                    /(_temp)
+                        (_c)(_i)c.?=
+                        (_temp)(_c)*"n"(_s)e.?=
+                        /(_temp)
+                            (_c)"\n"=
+                            (_temp)<0>=
+                        \
+                        (_temp)(_c)*"r"(_s)e.?=
+                        /(_temp)
+                            (_c)"\r"=
+                            (_temp)<0>=
+                        \
+                        (_temp)(_c)*"t"(_s)e.?=
+                        /(_temp)
+                            (_c)"\t"=
+                            (_temp)<0>=
+                        \
+                    \
+                    (_toPush)(_toPush)*(_c)*(_s)a.?=
+                    (_c)(_i)c.?=
+                    (_temp)(_c)*"\""(_s)e.?<0>(_a)e.?=
+                \
+                (_toPush)*(_newCommand)(PushString)!
+            \
+
+            (_temp)(_c)*"("(_s)e.?=
+            /(_temp)
+                (_toPush)""=
+                (_c)(_i)c.?=
+                (_temp)(_c)*")"(_s)e.?<0>(_a)e.?=
+                /(_temp)
+                    (_toPush)(_toPush)*(_c)*(_s)a.?=
+                    (_c)(_i)c.?=
+                    (_temp)(_c)*")"(_s)e.?<0>(_a)e.?=
+                \
+                (_temp)(_toPush)*<0>(_s)i.?(_str)(isDigit).?=
+                /(_temp)
+                    (_toPush)*(_newCommand)(DupElement)!
+                    (_temp)<0>=
+                \
+                /(_newCommand)
+                    (_toPush)*(_newCommand)(PushName)!
+                \
+            \
+
+            (_temp)(_c)*"<"(_s)e.?=
+            /(_temp)
+                (_n)""=
+                (_c)(_i)c.?=
+                (_temp)(_c)*">"(_s)e.?<0>(_a)e.?=
+                /(_temp)
+                    (_n)(_n)*(_c)*(_s)a.?=
+                    (_c)(_i)c.?=
+                    (_temp)(_c)*">"(_s)e.?<0>(_a)e.?=
+                \
+                (_n)*(_newCommand)(PushNumber)!
+            \
+
+            (_temp)(_c)*(_str)(isAlpha).?=
+            /(_temp)
+                (_c)*(_newCommand)(PushName)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*(_str)(isDigit).?=
+            /(_temp)
+                (_c)*(_newCommand)(DupElement)!
+                (_temp)<0>=
+            \
+
+            (_temp)(_c)*"'"(_s)e.?=
+            /(_temp)
+                (_self)(getComment).?
+                (_temp)<0>=
+            \
+
+            (_temp)(_newCommand)*(_b)n.?=
+            /(_temp)
+                (_newCommand)*(_curCommand)(setNext).?
+                (_curCommand)(_newCommand)*=
+                (_temp)<0>=
+            \
+
+            (_c)(_i)c.?=
+            (_temp)(_c)*"]"(_s)e.?<0>(_a)e.?=
+        \
+
+        (_newCommand)(Return)!
+        (_newCommand)*(_curCommand)(setNext).?
+
+        (_commands)*(_funcName)*^
+    ]
+
+    'Returns: The next name from the input'
+    [(getName)
+        (_a)A!
+        (_i)I!
+        (_s)S!
+        (_str)(String)!
+
+        (_c)(_i)c.?=
+        (_temp)(_c)*(_str)(isSpace).?=
+        /(_temp)
+            (_c)(_i)c.?=
+            (_temp)(_c)*(_str)(isSpace).?=
+        \
+        (_temp)(_c)*"("(_s)e.?=
+        /(_temp)
+            (_name)""=
+            (_c)(_i)c.?=
+            (_temp)(_c)*")"(_s)e.?<0>(_a)e.?=
+            /(_temp)
+                (_name)(_name)*(_c)*(_s)a.?=
+                (_c)(_i)c.?=
+                (_temp)(_c)*")"(_s)e.?<0>(_a)e.?=
+            \
+            (_name)*^
+        \
+        (_c)*
+    ]
+
+    [(getComment)
+        (_a)A!
+        (_i)I!
+        (_s)S!
+
+        (_c)(_i)c.?=
+        (_temp)(_c)*"'"(_s)e.?<0>(_a)e.?=
+        /(_temp)
+            (_c)(_i)c.?=
+            (_temp)(_c)*"'"(_s)e.?<0>(_a)e.?=
+        \
+    ]
+}

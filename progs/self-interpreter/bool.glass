@@ -1,0 +1,25 @@
+'A class for performing boolean operations'
+{(Bool)
+    'Performs a logical negation of the top element of the stack'
+    [n
+        (_temp)1=,
+        /(_temp)
+            <0>^
+        \
+        <1>
+    ]
+
+    'Takes the top two elements of the stack, and if they are both true, it
+     pushes 1, otherwise it pushes 0'
+    [a
+        (_temp)1=,
+        /(_temp)
+            (_temp)1=,
+            /(_temp)
+                <1>^
+            \
+            <0>^
+        \
+        ,<0>
+    ]
+}

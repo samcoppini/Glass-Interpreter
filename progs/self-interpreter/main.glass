@@ -1,0 +1,35 @@
+"bool.glass"
+"commands.glass"
+"function.glass"
+"instance.glass"
+"map.glass"
+"name.glass"
+"parser.glass"
+"printer.glass"
+"string.glass"
+
+{M
+    [m
+        (_parser)(Parser)!
+        (Classes)(_parser)(getClasses).?=
+
+        '
+        (Classes)*(_printer)(Printer)!
+        (_printer)(printClasses).?
+        '
+
+        (DebugPrintLevel)<-1>=
+        (CurVIndex)<0>=
+        (Globals)(Map)!
+        (CurLocals)<1>=
+        (ExecutingObj)<1>=
+
+        "M"(_name)(Name)!
+        (_name)*(_mainInst)(Instance)!
+
+        "m"(_name)(Name)!
+        (_name)*(_mainInst)*(_mainFunc)(Function)!
+
+        (_mainFunc)(execute).?
+    ]
+}

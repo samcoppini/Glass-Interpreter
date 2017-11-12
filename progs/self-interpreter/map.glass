@@ -1,0 +1,119 @@
+'A class for containing a value in the Map'
+{(MapNode)
+    'The constructor of the MapNode
+     Expects: The key to use for the node
+              The value associated with the key
+              The next node in the linked list'
+    [(c__)
+        (key)1=,
+        (val)1=,
+        (next)1=,
+    ]
+
+    'Returns the key of the MapNode
+     Expects: Nothing'
+    [(getKey)
+        (key)*
+    ]
+
+    'Returns the value associated with the MapNode
+     Expects: Nothing'
+    [(getVal)
+        (val)*
+    ]
+
+    'Returns the next node in the linked list
+     Expects: Nothing'
+    [(getNext)
+        (next)*
+    ]
+
+    'Changes the value of the node
+     Expects: A new value for the node'
+    [(setVal)
+        (val)1=,
+    ]
+}
+
+'A class for mapping string keys to arbitrary values. Implemented as a linked
+ list of key/value pairs, which is definitely not the best choice, but it was
+ certainly the easiest to implement, at least in Glass'
+{(Map)
+    [(c__)
+        'The first node in the linked list of MapNodes
+         1 is used as a sentinel value, indicating the end of the list'
+        (first)<1>=
+    ]
+
+    'Adds a new value to the map
+     Expects: The key for the new value
+              The value to add to the map'
+    [(add)
+        (_key)1=,
+        (_val)1=,
+
+        (_b)(Bool)!
+        (_s)S!
+
+        (_curNode)(first)*=
+
+        (_temp)(_curNode)*(_b)n.?=
+        /(_temp)
+            (_temp)(_curNode)(getKey).?(_key)*(_s)e.?=
+            /(_temp)
+                (_val)*(_curNode)(setVal).?^
+            \
+
+            (_curNode)(_curNode)(getNext).?=
+            (_temp)(_curNode)*(_b)n.?=
+        \
+
+        (first)*(_val)*(_key)*(first)(MapNode)!
+    ]
+
+    'Retrieves a value from the map
+     Expects: A string key
+     Returns: The value associated with the key'
+    [(get)
+        (_key)1=,
+
+        (_a)A!
+        (_s)S!
+
+        (_curNode)(first)*=
+        (_temp)(_curNode)(getKey).?(_key)*(_s)e.?<0>(_a)e.?=
+        /(_temp)
+            (_curNode)(_curNode)(getNext).?=
+            (_temp)(_curNode)(getKey).?(_key)*(_s)e.?<0>(_a)e.?=
+        \
+
+        (_curNode)(getVal).?
+    ]
+
+    'Returns whether a key exists in the map
+     Expects: A string key
+     Returns: 1 if the key exists, 0 otherwise'
+    [(has)
+        (_key)1=,
+
+        (_b)(Bool)!
+        (_s)S!
+
+        (_curNode)(first)*=
+        (_temp)(_curNode)*(_b)n.?=
+        /(_temp)
+            (_temp)(_key)*(_curNode)(getKey).?(_s)e.?=
+            /(_temp)
+                <1>^
+            \
+
+            (_curNode)(_curNode)(getNext).?=
+            (_temp)(_curNode)*(_b)n.?=
+        \
+        <0>
+    ]
+
+    [(getFirst)
+        (first)*
+    ]
+}

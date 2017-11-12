@@ -1,0 +1,55 @@
+{(Printer)
+    [(printClasses)
+        (_classes)1=,
+
+        (_self)$
+        (_o)O!
+        (_b)(Bool)!
+
+        (_curClass)(_classes)(getFirst).?=
+        (_temp)(_curClass)*(_b)n.?=
+        /(_temp)
+            "{("(_o)o.?
+            (_curClass)(getKey).?(_o)o.?
+            ")"(_o)o.?
+            (_curClass)(getVal).?(_self)(printFuncs).?
+            "}"(_o)o.?
+            (_curClass)(_curClass)(getNext).?=
+            (_temp)(_curClass)*(_b)n.?=
+        \
+    ]
+
+    [(printFuncs)
+        (_funcs)1=,
+
+        (_self)$
+        (_o)O!
+        (_b)(Bool)!
+
+        (_curFunc)(_funcs)(getFirst).?=
+        (_temp)(_curFunc)*(_b)n.?=
+        /(_temp)
+            "[("(_o)o.?
+            (_curFunc)(getKey).?(_o)o.?
+            ")"(_o)o.?
+            (_curFunc)(getVal).?(_self)(printCommands).?
+            "]"(_o)o.?
+            (_curFunc)(_curFunc)(getNext).?=
+            (_temp)(_curFunc)*(_b)n.?=
+        \
+    ]
+
+    [(printCommands)
+        (_commands)1=,
+
+        (_b)(Bool)!
+
+        (_curCommand)(_commands)*=
+        (_temp)(_curCommand)*(_b)n.?=
+        /(_temp)
+            (_curCommand)(print).?
+            (_curCommand)(_curCommand)(getNext).?=
+            (_temp)(_curCommand)*(_b)n.?=
+        \
+    ]
+}

@@ -1,0 +1,65 @@
+{(Instance)
+    [(c__)
+        (className)1=,
+        (className)(className)(getName).?=
+        (vars)(Map)!
+
+        'Check to see whether the class has a constructor, and if so, call it'
+        (_curClass)(className)*(Classes)(get).?=
+        (_temp)"c__"(_curClass)(has).?=
+        /(_temp)
+            (_self)$
+            "c__"(_name)(Name)!
+            (_name)*(_self)*(_func)(Function)!
+            (_func)(execute).?
+            (_temp)<0>=
+        \
+    ]
+
+    [(getClassName)
+        (className)*
+    ]
+
+    'Expects: A name
+     Returns: The local/class-level/global value associated with the name'
+    [(get)
+        (_name)1=,
+        (_name)(_name)(getName).?=
+
+        (_str)(String)!
+        (_s)S!
+
+        (_c)(_name)*<0>(_s)i.?=
+        (_temp)(_c)*"_"(_s)e.?=
+        /(_temp)
+            (_name)*(CurLocals)(get).?^
+        \
+        (_temp)(_c)*(_str)(isLower).?=
+        /(_temp)
+            (_name)*(vars)(get).?^
+        \
+        (_name)*(Globals)(get).?
+    ]
+
+    'Expects: The value to assign to the name
+              The name to assign to'
+    [(set)
+        (_val)1=,
+        (_name)1=,
+        (_name)(_name)(getName).?=
+
+        (_str)(String)!
+        (_s)S!
+
+        (_c)(_name)*<0>(_s)i.?=
+        (_temp)(_c)*"_"(_s)e.?=
+        /(_temp)
+            (_val)*(_name)*(CurLocals)(add).?^
+        \
+        (_temp)(_c)*(_str)(isLower).?=
+        /(_temp)
+            (_val)*(_name)*(vars)(add).?^
+        \
+        (_val)*(_name)*(Globals)(add).?
+    ]
+}
