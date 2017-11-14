@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <stack>
+#include <unordered_set>
 
 using namespace std::string_literals;
 
@@ -437,7 +438,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
 // included by the file. However, if there is a parsing error, this will
 // instead return std::nullopt
 std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>>
-get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
+parse_file(const std::string &filename, bool pedantic) {
     File file{filename};
     if (not file.is_open()) {
         std::cerr << "Unable to open \"" << filename << "\".\n";
@@ -446,9 +447,6 @@ get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
 
     std::vector<std::string> included_files;
     std::map<std::string, Class> classes;
-    if (add_builtins) {
-        classes = get_builtins();
-    }
     char c;
 
     while (file.get(c)) {
@@ -487,4 +485,47 @@ get_classes(const std::string &filename, bool pedantic, bool add_builtins) {
     }
 
     return {{classes, included_files}};
+}
+
+// Gets the classes from a file, including additional classes from files
+// included by the given file. Returns std::nullopt if there is any sort
+// of error
+std::optional<std::map<std::string, Class>>
+get_classes(const std::string &filename, bool pedantic)
+{
+    std::unordered_set<std::string> already_read;
+    std::vector<std::string> to_read{filename};
+    auto classes = get_builtins();
+
+    while (to_read.size() > 0) {
+        auto new_file = to_read.back();
+        to_read.pop_back();
+
+        if (already_read.count(new_file) != 0) {
+            continue;
+        }
+
+        auto file_pair = parse_file(new_file, pedantic);
+        if (not file_pair) {
+            return std::nullopt;
+        }
+
+        auto [new_classes, included_files] = *file_pair;
+        for (auto &class_info: new_classes) {
+            if (classes.count(class_info.first)) {
+                std::cerr << "Error! Class \"" << class_info.first
+                          << "\" defined multiple times!\n";
+                return std::nullopt;
+            }
+        }
+        classes.insert(new_classes.begin(), new_classes.end());
+
+        auto directory = new_file.substr(0, new_file.find_last_of("/\\") + 1);
+        for (auto &file: included_files) {
+            to_read.push_back(directory + file);
+        }
+        already_read.insert(new_file);
+    }
+
+    return classes;
 }

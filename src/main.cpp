@@ -98,42 +98,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    auto class_pair = get_classes(filename, pedantic);
-    if (not class_pair) {
+    auto classes_opt = get_classes(filename, pedantic);
+    if (not classes_opt) {
         return 1;
     }
-    auto [classes, included_files] = *class_pair;
-    if (included_files.size() > 0) {
-        std::set<std::string> already_read = {filename};
-        std::string directory = filename.substr(0, filename.find_last_of("/\\") + 1);
-        for (auto &file: included_files) {
-            file = directory + file;
-        }
-        while (included_files.size() > 0) {
-            auto to_read = included_files.back();
-            included_files.pop_back();
-            if (already_read.count(to_read) == 0) {
-                class_pair = get_classes(to_read, pedantic, false);
-                if (not class_pair) {
-                    return 1;
-                }
-                auto [new_classes, new_files] = *class_pair;
-                for (auto &[name, func]: new_classes) {
-                    if (classes.count(name)) {
-                        std::cerr << "Error! Class \"" << name
-                                  << "\" defined multiple times!\n";
-                        return 1;
-                    }
-                    classes.insert_or_assign(name, func);
-                }
-                directory = to_read.substr(0, to_read.find_last_of("/\\") + 1);
-                for (auto &file: new_files) {
-                    included_files.push_back(directory + file);
-                }
-                already_read.insert(to_read);
-            }
-        }
-    }
+    auto classes = std::move(*classes_opt);
     if (check_inheritance(classes)) {
         return 1;
     }

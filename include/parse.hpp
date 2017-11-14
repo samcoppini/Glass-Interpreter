@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>>
-get_classes(const std::string &filename, bool pedantic, bool add_builtins = true);
+std::optional<std::map<std::string, Class>>
+get_classes(const std::string &filename, bool pedantic);
 
 #endif
