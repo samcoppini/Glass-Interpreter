@@ -43,7 +43,7 @@ CommandList &Class::get_function(const std::string &name) {
 // Handles inheritance, adding functions to the class that are inherited from
 // its parent classes, and adjusts the constructor to call the parent classes'
 // constructors first
-void Class::handle_inheritance(std::map<std::string, Class> &classes) {
+void Class::handle_inheritance(ClassMap &classes) {
     for (auto &parent: parents) {
         if (classes.at(parent).parents.size() > 0) {
             classes.at(parent).handle_inheritance(classes);
@@ -60,7 +60,7 @@ void Class::handle_inheritance(std::map<std::string, Class> &classes) {
 }
 
 // Returns all of the functions in the class
-const std::map<std::string, CommandList> &Class::get_functions() const {
+const FuncMap &Class::get_functions() const {
     return functions;
 }
 
@@ -76,9 +76,9 @@ const std::string &Class::get_name() const {
 // Checks the inheritance graph of the given classes, making sure that there
 // isn't a cycle in inheritance, and that every parent class actually exists.
 // Returns true if there's some sort of error, and false otherwise
-bool check_inheritance(const std::map<std::string, Class> &classes) {
+bool check_inheritance(const ClassMap &classes) {
     enum class State {Unvisited, Processing, Processed};
-    std::map<std::string, State> class_states;
+    std::unordered_map<std::string, State> class_states;
 
     for (const auto &class_info: classes) {
         class_states[class_info.first] = State::Unvisited;

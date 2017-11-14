@@ -1,6 +1,7 @@
 #include "optimization.hpp"
 
 #include <functional>
+#include <map>
 #include <stack>
 
 // A list of the different patterns of command types for optimizations we can
@@ -98,7 +99,7 @@ void optimize_class(Class &to_optimize) {
     }
 }
 
-void optimize_classes(std::map<std::string, Class> &classes) {
+void optimize_classes(ClassMap &classes) {
     for (auto &class_info: classes) {
         optimize_class(class_info.second);
     }

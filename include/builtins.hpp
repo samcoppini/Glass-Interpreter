@@ -2,11 +2,10 @@
 #define BUILTINS_HPP
 
 #include "class.hpp"
+#include "variable.hpp"
 
 #include <map>
 #include <string>
-
-class Variable;
 
 // An enumeration of all of the built-in functions
 enum class Builtin: int {
@@ -48,10 +47,9 @@ enum class Builtin: int {
     VarDelete // V.d
 };
 
-std::map<std::string, Class> get_builtins();
-void remove_builtins(std::map<std::string, Class> &classes);
-bool handle_builtin(Builtin type, std::vector<Variable> &stack,
-                    std::map<std::string, Variable> &globals);
+ClassMap get_builtins();
+void remove_builtins(ClassMap &classes);
+bool handle_builtin(Builtin type, std::vector<Variable> &stack, VarMap &globals);
 std::string builtin_text(Builtin type, const std::string &temp_name);
 
 #endif

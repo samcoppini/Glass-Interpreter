@@ -3,6 +3,6 @@
 
 #include "class.hpp"
 
-void optimize_classes(std::map<std::string, Class> &classes);
+void optimize_classes(ClassMap &classes);
 
 #endif

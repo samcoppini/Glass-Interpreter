@@ -6,7 +6,7 @@
 
 class Class;
 
-std::string get_minified_source(std::map<std::string, Class> &classes,
-                                std::size_t line_width, bool minify_code, bool convert_code);
+std::string get_minified_source(ClassMap &classes, std::size_t line_width,
+                                bool minify_code, bool convert_code);
 
 #endif

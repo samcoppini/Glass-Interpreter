@@ -7,7 +7,7 @@
 #include <cctype>
 #include <fstream>
 #include <iostream>
-#include <set>
+#include <unordered_set>
 
 // Code that is included in every compiled source
 const std::string COMPILED_CODE_DEFS[] = {
@@ -576,17 +576,16 @@ std::string mangle_func_name(const std::string &class_name,
 
 // Returns a list of the names used in the source, seperated by whether it's
 // a global name, class-scope name or a local name
-std::array<std::set<std::string>, 4> get_names(const
-std::map<std::string, Class> &classes)
+std::array<std::unordered_set<std::string>, 4> get_names(const ClassMap &classes)
 {
-    std::array<std::set<std::string>, 4> vars;
-    std::set<std::string> &global_vars = vars[0];
-    std::set<std::string> &class_vars  = vars[1];
-    std::set<std::string> &func_vars   = vars[2];
-    std::set<std::string> &local_vars  = vars[3];
+    std::array<std::unordered_set<std::string>, 4> vars;
+    std::unordered_set<std::string> &global_vars = vars[0];
+    std::unordered_set<std::string> &class_vars  = vars[1];
+    std::unordered_set<std::string> &func_vars   = vars[2];
+    std::unordered_set<std::string> &local_vars  = vars[3];
 
     auto add_name = [&] (const std::string &name) {
-        std::set<std::string> *context;
+        std::unordered_set<std::string> *context;
         if (name[0] == '_') {
             context = &local_vars;
         } else if (std::islower(name[0])) {
@@ -632,10 +631,10 @@ std::map<std::string, Class> &classes)
 // Prints an enumeration of all the names used in the input file to the
 // compiled file
 void output_name_enums(std::ofstream &file,
-                       const std::set<std::string> &global_vars,
-                       const std::set<std::string> &class_vars,
-                       const std::set<std::string> &func_vars,
-                       const std::set<std::string> &local_vars)
+                       const std::unordered_set<std::string> &global_vars,
+                       const std::unordered_set<std::string> &class_vars,
+                       const std::unordered_set<std::string> &func_vars,
+                       const std::unordered_set<std::string> &local_vars)
 {
     file << "enum Name {\n";
 
@@ -666,10 +665,10 @@ void output_name_enums(std::ofstream &file,
 // Outputs the definitions necessary to have all of the class vtables, and
 // sets up the class constructors
 void output_class_defs(std::ofstream &file,
-                       const std::map<std::string, Class> &classes,
-                       const std::set<std::string> &global_vars,
-                       const std::set<std::string> &class_vars,
-                       const std::set<std::string> &func_vars)
+                       const ClassMap &classes,
+                       const std::unordered_set<std::string> &global_vars,
+                       const std::unordered_set<std::string> &class_vars,
+                       const std::unordered_set<std::string> &func_vars)
 {
     for (auto &[class_name, class_info]: classes) {
         if (global_vars.count(class_name) == 0) {
@@ -975,10 +974,10 @@ void output_commands(std::ofstream &file, const CommandList &commands) {
 // Outputs all of the functions necessary for implementing the all of
 // the Glass classes' methods
 void output_functions(std::ofstream &file,
-                      const std::map<std::string, Class> &classes,
-                      const std::set<std::string> &global_vars,
-                      const std::set<std::string> &class_vars,
-                      const std::set<std::string> &func_vars)
+                      const ClassMap &classes,
+                      const std::unordered_set<std::string> &global_vars,
+                      const std::unordered_set<std::string> &class_vars,
+                      const std::unordered_set<std::string> &func_vars)
 {
     for (auto &[class_name, class_info]: classes) {
         if (not global_vars.count(class_name)) {
@@ -1013,8 +1012,7 @@ void output_main_func(std::ofstream &file) {
 
 // Compiles the given classes to ANSI C.
 // Returns whether there was some error during compilation
-bool compile_classes(const std::map<std::string, Class> &classes,
-                     const std::string &file_name)
+bool compile_classes(const ClassMap &classes, const std::string &file_name)
 {
     std::ofstream file{file_name};
     if (not file.is_open()) {

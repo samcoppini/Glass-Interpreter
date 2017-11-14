@@ -1,6 +1,7 @@
 #ifndef FUNCTION_HPP
 #define FUNCTION_HPP
 
+#include "class.hpp"
 #include "command.hpp"
 
 #include <map>
@@ -27,10 +28,9 @@ class Function {
         Function(CommandList &commands, const std::string &name, Instance *cur_obj);
         void move_instance(Instance *old_insts, Instance *new_insts);
         Instance *get_obj() const;
-        bool execute(InstanceManager &manager,
-                     std::map<std::string, Class> &classes,
+        bool execute(InstanceManager &manager, ClassMap &classes,
                      std::vector<Variable> &stack,
-                     std::map<std::string, Variable> &globals);
+                     std::unordered_map<std::string, Variable> &globals);
 };
 
 std::optional<Variable> pop_stack(std::vector<Variable> &stack);

@@ -5,6 +5,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 
 // The possible types for a Glass value
@@ -47,6 +48,8 @@ class Variable {
         bool is_marked() const;
         explicit operator bool() const;
 };
+
+using VarMap = std::unordered_map<std::string, Variable>;
 
 std::string get_type_name(VarType type);
 

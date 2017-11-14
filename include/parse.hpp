@@ -9,7 +9,6 @@
 #include <string>
 #include <utility>
 
-std::optional<std::map<std::string, Class>>
-get_classes(const std::string &filename, bool pedantic);
+std::optional<ClassMap> get_classes(const std::string &filename, bool pedantic);
 
 #endif

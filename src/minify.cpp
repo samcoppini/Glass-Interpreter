@@ -6,11 +6,11 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <set>
+#include <unordered_set>
 
 // Names that absolutely must stay the same, or else the program may not be
 // able to call builtin functions or even run
-const std::set<std::string> PREDEFINED_NAMES = {
+const std::unordered_set<std::string> PREDEFINED_NAMES = {
     "A", "I", "M", "O", "S", "V", "a", "c", "d", "e", "f", "ge", "gt", "i",
     "l", "le", "lt", "m", "n", "ne", "ns", "mod", "o", "on", "s", "si", "sn",
     "c__", "d__"
@@ -18,8 +18,8 @@ const std::set<std::string> PREDEFINED_NAMES = {
 
 // Given the list of classes, returns a list of names, ordered by how
 // frequently they appear, with the most frequent names being first
-std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
-    std::map<std::string, int> name_freqs;
+std::vector<std::string> order_names(ClassMap &classes) {
+    std::unordered_map<std::string, int> name_freqs;
     for (const auto &[class_name, class_info]: classes) {
         name_freqs[class_name] += 1;
         for (const auto &[func_name, func_info]: class_info.get_functions()) {
@@ -49,10 +49,10 @@ std::vector<std::string> order_names(std::map<std::string, Class> &classes) {
 
 // Returns a minified respresentation of the source code, based off of the
 // already-parsed class definitions
-std::string get_minified_source(std::map<std::string, Class> &classes,
-                                std::size_t line_width, bool minify_code, bool convert_code)
+std::string get_minified_source(ClassMap &classes, std::size_t line_width,
+                                bool minify_code, bool convert_code)
 {
-    std::map<std::string, std::string> reassigned_names;
+    std::unordered_map<std::string, std::string> reassigned_names;
 
     // Make sure we don't reassign the names of builtin functions
     for (const auto &name: PREDEFINED_NAMES) {

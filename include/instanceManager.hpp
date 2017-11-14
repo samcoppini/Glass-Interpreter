@@ -1,7 +1,8 @@
 #ifndef INSTANCE_MANAGER_HPP
 #define INSTANCE_MANAGER_HPP
 
-#include <map>
+#include "variable.hpp"
+
 #include <string>
 #include <vector>
 
@@ -18,7 +19,7 @@ const int NUM_STARTING_INSTANCES = 256;
 class InstanceManager {
     private:
         // The local variables from each currently executing function
-        std::vector<std::map<std::string, Variable> *> locals;
+        std::vector<VarMap *> locals;
 
         // The objects that are currently executing functions
         std::vector<Function *> executing_funcs;
@@ -27,7 +28,7 @@ class InstanceManager {
         std::vector<Variable> &stack;
 
         // The global variables
-        std::map<std::string, Variable> &globals;
+        VarMap &globals;
 
         // An array of allocated instances
         Instance *instances;
@@ -43,10 +44,10 @@ class InstanceManager {
 
     public:
         InstanceManager(std::vector<Variable> &stack,
-                        std::map<std::string, Variable> &globals);
+                        VarMap &globals);
         ~InstanceManager();
         void new_scope(Function *executing_func,
-                       std::map<std::string, Variable> *new_locals);
+                       VarMap *new_locals);
         void unwind_scope();
         Instance *new_instance(Class &type);
         void collect_garbage();

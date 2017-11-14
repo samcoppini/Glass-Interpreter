@@ -437,7 +437,7 @@ std::optional<std::pair<std::string, Class>> get_class(File &file, bool pedantic
 // Returns a pair of all the classes in the given file, and all the files
 // included by the file. However, if there is a parsing error, this will
 // instead return std::nullopt
-std::optional<std::pair<std::map<std::string, Class>, std::vector<std::string>>>
+std::optional<std::pair<ClassMap, std::vector<std::string>>>
 parse_file(const std::string &filename, bool pedantic) {
     File file{filename};
     if (not file.is_open()) {
@@ -446,7 +446,7 @@ parse_file(const std::string &filename, bool pedantic) {
     }
 
     std::vector<std::string> included_files;
-    std::map<std::string, Class> classes;
+    ClassMap classes;
     char c;
 
     while (file.get(c)) {
@@ -490,8 +490,7 @@ parse_file(const std::string &filename, bool pedantic) {
 // Gets the classes from a file, including additional classes from files
 // included by the given file. Returns std::nullopt if there is any sort
 // of error
-std::optional<std::map<std::string, Class>>
-get_classes(const std::string &filename, bool pedantic)
+std::optional<ClassMap> get_classes(const std::string &filename, bool pedantic)
 {
     std::unordered_set<std::string> already_read;
     std::vector<std::string> to_read{filename};

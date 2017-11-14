@@ -27,12 +27,10 @@ void Function::move_instance(Instance *old_insts, Instance *new_insts) {
 
 // Executes a function, given references to the classes, stack and global
 // variables. Returns whether there was an error of some sort
-bool Function::execute(InstanceManager &manager,
-                       std::map<std::string, Class> &classes,
-                       std::vector<Variable> &stack,
-                       std::map<std::string, Variable> &globals)
+bool Function::execute(InstanceManager &manager, ClassMap &classes,
+                       std::vector<Variable> &stack, VarMap &globals)
 {
-    std::map<std::string, Variable> locals;
+    VarMap locals;
     manager.new_scope(this, &locals);
 
     // Gets the value of a name from the proper context

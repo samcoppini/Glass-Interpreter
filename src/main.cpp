@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
         return compile_classes(classes, out_file);
     } else {
         std::vector<Variable> stack;
-        std::map<std::string, Variable> globals;
+        VarMap globals;
         InstanceManager manager{stack, globals};
 
         globals.emplace("_Main", manager.new_instance(classes.at("M")));

@@ -37,8 +37,8 @@ const std::map<Builtin, std::pair<std::string, std::string>> BUILTIN_INFO = {
     {Builtin::VarDelete,          {"V", "d"}},
 };
 
-std::map<std::string, Class> get_builtins() {
-    std::map<std::string, Class> builtins = {
+ClassMap get_builtins() {
+    ClassMap builtins {
         {"A", {"A"}}, {"I", {"I"}}, {"O", {"O"}}, {"S", {"S"}}, {"V", {"V"}}
     };
 
@@ -51,7 +51,7 @@ std::map<std::string, Class> get_builtins() {
 }
 
 // Remove the builtin classes from the given map of classes
-void remove_builtins(std::map<std::string, Class> &classes) {
+void remove_builtins(ClassMap &classes) {
     classes.erase("A");
     classes.erase("I");
     classes.erase("O");
@@ -119,8 +119,7 @@ bool types_match(const std::vector<Variable> &stack, const std::string &name,
 }
 
 // Handles a builtin function, returning true if there was an error
-bool handle_builtin(Builtin type, std::vector<Variable> &stack,
-                    std::map<std::string, Variable> &globals)
+bool handle_builtin(Builtin type, std::vector<Variable> &stack, VarMap &globals)
 {
     switch (type) {
         case Builtin::InputLine: {

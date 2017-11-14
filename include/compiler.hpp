@@ -3,7 +3,6 @@
 
 #include "class.hpp"
 
-bool compile_classes(const std::map<std::string, Class> &classes,
-                     const std::string &file_name);
+bool compile_classes(const ClassMap &classes, const std::string &file_name);
 
 #endif

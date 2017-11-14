@@ -5,8 +5,7 @@
 #include <iostream>
 #include <queue>
 
-InstanceManager::InstanceManager(std::vector<Variable> &stack,
-                                 std::map<std::string, Variable> &globals):
+InstanceManager::InstanceManager(std::vector<Variable> &stack, VarMap &globals):
 stack(stack), globals(globals), num_instances(NUM_STARTING_INSTANCES), next_instance(0) {
     instances = static_cast<Instance *>(operator new[](num_instances * sizeof(Instance)));
     instances_used = new bool[num_instances]();
@@ -28,9 +27,7 @@ InstanceManager::~InstanceManager() {
 }
 
 // Adds the local variables from a new scope to the manager
-void InstanceManager::new_scope(Function *executing_func,
-                                std::map<std::string, Variable> *new_locals)
-{
+void InstanceManager::new_scope(Function *executing_func, VarMap *new_locals) {
     executing_funcs.push_back(executing_func);
     locals.push_back(new_locals);
 }
