@@ -18,10 +18,15 @@ const std::unordered_set<std::string> PREDEFINED_NAMES = {
 
 // Given the list of classes, returns a list of names, ordered by how
 // frequently they appear, with the most frequent names being first
-std::vector<std::string> order_names(ClassMap &classes) {
+std::vector<std::string> order_names(const ClassMap &classes) {
     std::unordered_map<std::string, int> name_freqs;
     for (const auto &[class_name, class_info]: classes) {
         name_freqs[class_name] += 1;
+
+        for (const auto &parent_name: class_info.get_parents()) {
+            name_freqs[parent_name] += 1;
+        }
+
         for (const auto &[func_name, func_info]: class_info.get_functions()) {
             name_freqs[func_name] += 1;
             for (const auto &command: func_info) {
@@ -47,40 +52,77 @@ std::vector<std::string> order_names(ClassMap &classes) {
     return names;
 }
 
+// Returns an unordered_map the maps variable names to new, shorter names
+std::unordered_map<std::string, std::string> reassign_names(const ClassMap &classes) {
+    // The current name for each different type of name
+    std::string upper_name = "a", lower_name = "a", under_name = "a";
+
+    // "Increments" a name, moving it to the next possible name.
+    // e.g. "a" becomes "b", "b" becomes "c", "z" becomes "aa", "az" becomes "ba"
+    // The first letter must be a-z, as otherwise it could change the scope
+    // (although, this is not true of local variables, as they are always
+    // preceded by an underscore). All other letters can be a-z, A-Z or 0-9
+    auto inc_name = [] (std::string &name, bool first_must_be_lower = true) {
+        for (std::size_t i = 0; i < name.size(); i++) {
+            std::size_t index = name.size() - i - 1;
+            if (name[index] == 'Z') {
+                name[index] = '0';
+            } else if (name[index] == '9') {
+                name[index] = 'a';
+            } else if (name[index] == 'z') {
+                if (index > 0 or not first_must_be_lower) {
+                    name[index] = 'A';
+                } else {
+                    name[index] = 'a';
+                }
+            } else {
+                name[index]++;
+            }
+            if (name[index] != 'a') {
+                return;
+            }
+        }
+        name = "a" + name;
+    };
+
+    std::unordered_map<std::string, std::string> reassigned_names;
+    auto ordered_names = order_names(classes);
+
+    // Go through each name, in order of their frequency, reassigning them to
+    // have newer, shorter names. If the next name that would be assigned is
+    // a built-in name, we skip over that name, and assign the next free name
+    for (auto &name: ordered_names) {
+        if (PREDEFINED_NAMES.count(name)) {
+            reassigned_names[name] = name;
+            continue;
+        }
+        std::string new_name;
+        if (std::isupper(name[0])) {
+            do {
+                new_name = upper_name;
+                new_name[0] = std::toupper(new_name[0]);
+                inc_name(upper_name);
+            } while (PREDEFINED_NAMES.count(new_name));
+        } else if (std::islower(name[0])) {
+            do {
+                new_name = lower_name;
+                inc_name(lower_name);
+            } while (PREDEFINED_NAMES.count(new_name));
+        } else {
+            new_name = "_" + under_name;
+            inc_name(under_name, true);
+        }
+        reassigned_names[name] = new_name;
+    }
+
+    return reassigned_names;
+}
+
 // Returns a minified respresentation of the source code, based off of the
 // already-parsed class definitions
 std::string get_minified_source(ClassMap &classes, std::size_t line_width,
                                 bool minify_code, bool convert_code)
 {
-    std::unordered_map<std::string, std::string> reassigned_names;
-
-    // Make sure we don't reassign the names of builtin functions
-    for (const auto &name: PREDEFINED_NAMES) {
-        reassigned_names[name] = name;
-    }
-
-    // The current names for Global, class and _local variables
-    std::string upper_name = "`", lower_name = "`", under_name = "`";
-    std::string cur_line;
-    std::string new_code;
-
-    remove_builtins(classes);
-
-    // Increments a name. 'a' becomes 'b', 'aa' becomes 'ab', 'az' becomes 'ba'
-    // 'zzz' becomes 'aaaa', etc...
-    auto inc_name = [&] (std::string &name) {
-        for (std::size_t i = 0; i < name.size(); i++) {
-            std::size_t index = name.size() - i - 1;
-            if (name[index] == 'z') {
-                name[index] = 'a';
-            } else {
-                name[index]++;
-                return;
-            }
-        }
-        name += 'a';
-    };
-
     // Returns a string representation of a number
     auto get_number = [] (const double &num, bool use_paren) -> std::string {
         auto num_str = std::to_string(num);
@@ -100,32 +142,14 @@ std::string get_minified_source(ClassMap &classes, std::size_t line_width,
         }
     };
 
-    // Reassign a name to a new, (hopefully) shorter name
-    auto assign_name = [&] (const std::string &name) {
-        if (PREDEFINED_NAMES.count(name)) {
-            return;
-        }
-        if (std::isupper(name[0])) {
-            inc_name(upper_name);
-            auto new_name = upper_name;
-            new_name[0] = std::toupper(new_name[0]);
-            while (PREDEFINED_NAMES.count(new_name)) {
-                inc_name(upper_name);
-                new_name = upper_name;
-                new_name[0] = std::toupper(new_name[0]);
-            }
-            reassigned_names[name] = new_name;
-        } else if (std::islower(name[0])) {
-            inc_name(lower_name);
-            while (PREDEFINED_NAMES.count(lower_name)) {
-                inc_name(lower_name);
-            }
-            reassigned_names[name] = lower_name;
-        } else {
-            inc_name(under_name);
-            reassigned_names[name] = "_" + under_name;
-        }
-    };
+    std::unordered_map<std::string, std::string> reassigned_names;
+    if (minify_code) {
+        reassigned_names = reassign_names(classes);
+    }
+    remove_builtins(classes);
+
+    std::string cur_line;
+    std::string new_code;
 
     // Returns the representation of a name, with parentheses around it, if
     // it can't be written as a single character
@@ -153,13 +177,6 @@ std::string get_minified_source(ClassMap &classes, std::size_t line_width,
             cur_line += new_src;
         }
     };
-
-    auto names = order_names(classes);
-    if (minify_code) {
-        for (const auto &name: names) {
-            assign_name(name);
-        }
-    }
 
     for (const auto &[class_name, class_info]: classes) {
         add_to_source("{");
