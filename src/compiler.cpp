@@ -662,6 +662,37 @@ void output_name_enums(std::ofstream &file,
          << "\n};\n\n";
 }
 
+// Outputs String structs that are pushed to the stack by the program. They are
+// set up to have a reference count of at least one at all times so that the
+// program doesn't accidentally free them. Returns a map to convert a given
+// string to the output struct String in the program.
+std::unordered_map<std::string, int> output_strings(std::ofstream &file,
+                                                    const ClassMap &classes)
+{
+    std::unordered_map<std::string, int> str_map;
+    int cur_index = 1;
+
+    file << "\n";
+
+    for (const auto &class_info: classes) {
+        for (const auto &func_info: class_info.second.get_functions()) {
+            for (const auto &command: func_info.second) {
+                if (command.get_type() == CommandType::PushString) {
+                    auto &str_index = str_map[command.get_string()];
+                    if (str_index == 0) {
+                        str_index = cur_index;
+                        file << "struct String str" << cur_index << " = {\""
+                             << escape_str(command.get_string()) << "\", 1};\n";
+                        cur_index++;
+                    }
+                }
+            }
+        }
+    }
+
+    return str_map;
+}
+
 // Outputs the definitions necessary to have all of the class vtables, and
 // sets up the class constructors
 void output_class_defs(std::ofstream &file,
@@ -753,7 +784,9 @@ void output_class_defs(std::ofstream &file,
 }
 
 // Translates the Glass commands to C source code
-void output_commands(std::ofstream &file, const CommandList &commands) {
+void output_commands(std::ofstream &file, const CommandList &commands,
+                     const std::unordered_map<std::string, int> &str_indices)
+{
     // If the function is a builtin, just output the definition of
     // the function from BUILTIN_IMPLS and leave
     if (commands.size() == 1 and
@@ -912,8 +945,9 @@ void output_commands(std::ofstream &file, const CommandList &commands) {
 
             case CommandType::PushString:
                 add_lines(
-                    "temp.type = TYPE_STR, temp.val.sval = copy_str(\""
-                    + escape_str(command.get_string()) + "\");",
+                    "temp.type = TYPE_STR, temp.val.sval = &str"
+                    + std::to_string(str_indices.at(command.get_string())) + ";",
+                    "temp.val.sval->ref_count++;",
                     "stack_push(&temp);"
                 );
                 break;
@@ -977,7 +1011,8 @@ void output_functions(std::ofstream &file,
                       const ClassMap &classes,
                       const std::unordered_set<std::string> &global_vars,
                       const std::unordered_set<std::string> &class_vars,
-                      const std::unordered_set<std::string> &func_vars)
+                      const std::unordered_set<std::string> &func_vars,
+                      const std::unordered_map<std::string, int> &str_indices)
 {
     for (auto &[class_name, class_info]: classes) {
         if (not global_vars.count(class_name)) {
@@ -992,7 +1027,7 @@ void output_functions(std::ofstream &file,
             file << "\nvoid " << mangle_func_name(class_name, func_name)
                  << "(size_t this) {\n";
 
-            output_commands(file, commands);
+            output_commands(file, commands, str_indices);
             file << "}\n";
         }
     }
@@ -1044,8 +1079,10 @@ bool compile_classes(const ClassMap &classes, const std::string &file_name)
         file << line << "\n";
     }
 
+    auto str_indices = output_strings(file, classes);
+
     output_class_defs(file, classes, global_vars, class_vars, func_vars);
-    output_functions(file, classes, global_vars, class_vars, func_vars);
+    output_functions(file, classes, global_vars, class_vars, func_vars, str_indices);
     output_main_func(file);
 
     return false;
