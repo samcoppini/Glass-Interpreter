@@ -1,6 +1,7 @@
 #include "builtins.hpp"
 #include "file.hpp"
 #include "parse.hpp"
+#include "string-things.hpp"
 
 #include <cctype>
 #include <cmath>
@@ -63,12 +64,13 @@ std::optional<double> get_number(File &file, char end_char) {
         return std::nullopt;
     }
 
-    try {
-        return std::stod(str);
-    } catch (const std::invalid_argument &e) {
+    if (not valid_number(str)) {
         parse_error(file.get_name(), start_line, start_col,
                     "Invalid number \"" + str + "\".");
         return std::nullopt;
+    }
+    try {
+        return std::stod(str);
     } catch (const std::out_of_range &e) {
         parse_error(file.get_name(), start_line, start_col,
                     str + " is too large to be represented as a number.");
