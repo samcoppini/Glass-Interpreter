@@ -783,6 +783,26 @@ void output_class_defs(std::ofstream &file,
     file << "\n};\n";
 }
 
+// Returns whether the function MUST be considered a new scope that must be
+// have its variables added to the locals_list. This is considered true if
+// the garbage collector could possibly run during the function's execution.
+bool must_create_new_scope(const CommandList &commands) {
+    for (const auto &command: commands) {
+        switch (command.get_type()) {
+            case CommandType::AssignClass:
+            case CommandType::ExecuteFunc:
+            case CommandType::FuncCall:
+            case CommandType::NewInst:
+                return true;
+
+            default:
+                break;
+        }
+    }
+
+    return false;
+}
+
 // Translates the Glass commands to C source code
 void output_commands(std::ofstream &file, const CommandList &commands,
                      const std::unordered_map<std::string, int> &str_indices)
@@ -799,13 +819,18 @@ void output_commands(std::ofstream &file, const CommandList &commands,
         return;
     }
 
+    bool is_new_scope = must_create_new_scope(commands);
+
     // Create an array for storing the local variables, all initialized
     // to be undefined values at first
     file << "\tstruct Val local_vars[NUM_LOCAL_VARS] = {\n"
          << "\t\t{0.0, 0, TYPE_UNDEFINED}\n"
          << "\t};\n"
-         << "\tstruct Val temp, temp2;\n"
-         << "\tenter_scope(this, local_vars);\n";
+         << "\tstruct Val temp, temp2;\n";
+
+    if (is_new_scope) {
+        file << "\tenter_scope(this, local_vars);\n";
+    }
 
     int tab_level = 1;
 
@@ -953,8 +978,10 @@ void output_commands(std::ofstream &file, const CommandList &commands,
                 break;
 
             case CommandType::Return:
-                add_lines("leave_scope();",
-                          "return;");
+                if (is_new_scope) {
+                    add_lines("leave_scope();");
+                }
+                add_lines("return;");
                 break;
 
             case CommandType::AssignTo: {
@@ -1017,7 +1044,10 @@ void output_commands(std::ofstream &file, const CommandList &commands,
                 break;
         }
     }
-    add_lines("leave_scope();");
+
+    if (is_new_scope) {
+        add_lines("leave_scope();");
+    }
 }
 
 // Outputs all of the functions necessary for implementing the all of
