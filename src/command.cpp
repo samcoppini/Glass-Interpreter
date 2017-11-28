@@ -45,7 +45,7 @@ double Command::get_number() const {
     return std::get<double>(data);
 }
 
-std::string Command::get_string() const {
+const std::string &Command::get_string() const {
     return std::get<std::string>(data);
 }
 
@@ -57,19 +57,19 @@ std::size_t Command::get_jump() const {
     return std::get<std::pair<std::size_t, std::string>>(data).first;
 }
 
-std::string Command::get_loop_var() const {
+const std::string &Command::get_loop_var() const {
     return std::get<std::pair<std::size_t, std::string>>(data).second;
 }
 
-std::string Command::get_first_name() const {
+const std::string &Command::get_first_name() const {
     return std::get<std::pair<std::string, std::string>>(data).first;
 }
 
-std::string Command::get_second_name() const {
+const std::string &Command::get_second_name() const {
     return std::get<std::pair<std::string, std::string>>(data).second;
 }
 
-std::string Command::get_file_name() const {
+const std::string &Command::get_file_name() const {
     return file_name;
 }
 

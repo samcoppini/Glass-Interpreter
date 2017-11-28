@@ -95,12 +95,12 @@ class Command {
         CommandType get_type() const;
         Builtin get_builtin() const;
         double get_number() const;
-        std::string get_string() const;
+        const std::string &get_string() const;
         std::size_t get_jump() const;
-        std::string get_loop_var() const;
-        std::string get_first_name() const;
-        std::string get_second_name() const;
-        std::string get_file_name() const;
+        const std::string &get_loop_var() const;
+        const std::string &get_first_name() const;
+        const std::string &get_second_name() const;
+        const std::string &get_file_name() const;
         int get_line() const;
         int get_col() const;
         int get_2nd_line() const;
