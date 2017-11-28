@@ -268,6 +268,16 @@ bool Function::execute(InstanceManager &manager, ClassMap &classes,
                 }
                 break;
 
+            case CommandType::AssignTo: {
+                auto val = pop_stack(stack);
+                if (not val) {
+                    runtime_error(command, "Attempted to pop empty stack.");
+                    return true;
+                }
+                set_val(command.get_string(), *val);
+                break;
+            }
+
             case CommandType::FuncCall: {
                 auto oname = command.get_first_name();
                 auto fname = command.get_second_name();

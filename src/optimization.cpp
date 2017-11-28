@@ -1,61 +1,102 @@
 #include "optimization.hpp"
 
-#include <functional>
-#include <map>
 #include <stack>
 
-// A list of the different patterns of command types for optimizations we can
-// match, and the corresponding functions to call to make the proper
-// command replacements
-const std::map<std::vector<CommandType>, std::function<void(CommandList&, size_t)>>
-COMMAND_REPLACEMENTS = {
-    {{CommandType::PushName, CommandType::PushName,
-      CommandType::GetFunction, CommandType::ExecuteFunc},
-     [] (CommandList &commands, size_t end_index) {
-         commands[end_index - 0] = {CommandType::FuncCall,
-                                    commands[end_index - 3].get_string(),
-                                    commands[end_index - 2].get_string(),
-                                    commands[end_index - 1].get_file_name(),
-                                    commands[end_index - 1].get_line(),
-                                    commands[end_index - 1].get_col(),
-                                    commands[end_index].get_line(),
-                                    commands[end_index].get_col()};
-         commands[end_index - 1] = {CommandType::Nop, "", 0, 0};
-         commands[end_index - 2] = {CommandType::Nop, "", 0, 0};
-         commands[end_index - 3] = {CommandType::Nop, "", 0, 0};
-     }},
-     {{CommandType::PushName, CommandType::PushName,
-       CommandType::AssignClass},
-      [] (CommandList &commands, size_t end_index) {
-          commands[end_index - 0] = {CommandType::NewInst,
-                                     commands[end_index - 2].get_string(),
-                                     commands[end_index - 1].get_string(),
-                                     commands[end_index].get_file_name(),
-                                     commands[end_index].get_line(),
-                                     commands[end_index].get_col()};
-          commands[end_index - 1] = {CommandType::Nop, "", 0, 0};
-          commands[end_index - 2] = {CommandType::Nop, "", 0, 0};
-      }}
-};
+void optimize_instantiations(CommandList &commands, size_t i) {
+    if (i < 2) {
+        return;
+    }
+
+    if (commands[i - 1].get_type() == CommandType::PushName and
+        commands[i - 2].get_type() == CommandType::PushName)
+    {
+        commands[i] = {CommandType::NewInst,
+                       commands[i - 2].get_string(),
+                       commands[i - 1].get_string(),
+                       commands[i].get_file_name(),
+                       commands[i].get_line(),
+                       commands[i].get_col()};
+        commands[i - 1] = {CommandType::Nop, "", 0, 0};
+        commands[i - 2] = {CommandType::Nop, "", 0, 0};
+    }
+}
+
+void optimize_func_executions(CommandList &commands, size_t i) {
+    if (i < 3) {
+        return;
+    }
+
+    if (commands[i - 1].get_type() == CommandType::GetFunction and
+        commands[i - 2].get_type() == CommandType::PushName and
+        commands[i - 3].get_type() == CommandType::PushName)
+    {
+        commands[i] = {CommandType::FuncCall,
+                       commands[i - 3].get_string(),
+                       commands[i - 2].get_string(),
+                       commands[i - 1].get_file_name(),
+                       commands[i - 1].get_line(),
+                       commands[i - 1].get_col(),
+                       commands[i].get_line(),
+                       commands[i].get_col()};
+        commands[i - 1] = {CommandType::Nop, "", 0, 0};
+        commands[i - 2] = {CommandType::Nop, "", 0, 0};
+        commands[i - 3] = {CommandType::Nop, "", 0, 0};
+    }
+}
+
+void optimize_assignments(CommandList &commands, size_t i) {
+    if (i < 2) {
+        return;
+    }
+    if (commands[i - 1].get_type() == CommandType::DupElement and
+        commands[i - 1].get_number() == 1 and
+        commands[i - 2].get_type() == CommandType::PushName)
+    {
+        if (i + 1 < commands.size() and
+            commands[i + 1].get_type() == CommandType::PopStack)
+        {
+            commands[i - 2] = {CommandType::AssignTo,
+                               commands[i - 2].get_string(),
+                               commands[i - 1].get_file_name(),
+                               commands[i - 1].get_line(),
+                               commands[i - 1].get_col()};
+            commands[i - 1] = {CommandType::Nop, "", 0, 0};
+            commands[i]     = {CommandType::Nop, "", 0, 0};
+            commands[i + 1] = {CommandType::Nop, "", 0, 0};
+        } else {
+            commands[i - 1] = {CommandType::AssignTo,
+                               commands[i - 2].get_string(),
+                               commands[i - 1].get_file_name(),
+                               commands[i - 1].get_line(),
+                               commands[i - 1].get_col()};
+            commands[i - 2] = {CommandType::DupElement, 0.0,
+                               commands[i - 1].get_file_name(),
+                               commands[i - 1].get_line(),
+                               commands[i - 1].get_col()};
+            commands[i] = {CommandType::Nop, "", 0, 0};
+        }
+    }
+}
 
 // Looks through the list of commands, looking for sequences of commands that
 // we can collapse into one command
 void collapse_commands(CommandList &commands) {
     for (size_t i = 0; i < commands.size(); i++) {
-        for (const auto &[to_match, replace_func]: COMMAND_REPLACEMENTS) {
-            if (i < to_match.size() - 1)
-                continue;
+        switch (commands[i].get_type()) {
+            case CommandType::AssignClass:
+                optimize_instantiations(commands, i);
+                break;
 
-            bool found_match = true;
-            for (size_t j = 0; j < to_match.size(); j++) {
-                if (commands[i - j].get_type() != to_match[to_match.size() - j - 1]) {
-                    found_match = false;
-                    break;
-                }
-            }
-            if (found_match) {
-                replace_func(commands, i);
-            }
+            case CommandType::AssignValue:
+                optimize_assignments(commands, i);
+                break;
+
+            case CommandType::ExecuteFunc:
+                optimize_func_executions(commands, i);
+                break;
+
+            default:
+                break;
         }
     }
 }

@@ -29,6 +29,7 @@ enum class CommandType {
     BuiltinFunction,
 
     // Optimized commands that are made up of several different commands
+    AssignTo, // Equivalent to (name)(1)=,
     FuncCall, // (objectName)(funcName).?
     NewInst,  // (objectName)(className)!
 

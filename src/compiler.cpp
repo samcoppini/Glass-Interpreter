@@ -957,6 +957,21 @@ void output_commands(std::ofstream &file, const CommandList &commands,
                           "return;");
                 break;
 
+            case CommandType::AssignTo: {
+                std::string assign_loc;
+                if (command.get_string()[0] == '_') {
+                    assign_loc = "local_vars[N_" + command.get_string() +
+                                 " - NUM_GLOBAL_VARS - NUM_FUNC_VARS]";
+                } else if (std::islower(command.get_string()[0])) {
+                    assign_loc = "get_inst(this)->vars[N_" +
+                                 command.get_string() + " - NUM_GLOBAL_VARS]";
+                } else {
+                    assign_loc = "global_vars[N_" + command.get_string() + "]";
+                }
+                add_lines("temp = stack_pop();", assign_loc + " = temp;");
+                break;
+            }
+
             case CommandType::FuncCall: {
                 std::string new_str = "temp = ";
                 if (command.get_first_name()[0] == '_') {
