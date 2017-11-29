@@ -110,7 +110,7 @@ std::unordered_map<std::string, std::string> reassign_names(const ClassMap &clas
             } while (PREDEFINED_NAMES.count(new_name));
         } else {
             new_name = "_" + under_name;
-            inc_name(under_name, true);
+            inc_name(under_name, false);
         }
         reassigned_names[name] = new_name;
     }
