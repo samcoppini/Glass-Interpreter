@@ -48,7 +48,7 @@ class Command {
             // Used for DupElement and PushNumber
             double,
 
-            // Used for PushName and PushString
+            // Used for PushName, PushString, and AssignTo
             std::string,
 
             // Used for BuiltinFunction
