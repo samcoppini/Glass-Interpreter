@@ -1,5 +1,6 @@
 #include <functional>
 #include <iostream>
+#include <unordered_set>
 
 #include "class.hpp"
 
@@ -44,18 +45,61 @@ CommandList &Class::get_function(const std::string &name) {
 // its parent classes, and adjusts the constructor to call the parent classes'
 // constructors first
 void Class::handle_inheritance(ClassMap &classes) {
-    for (auto &parent: parents) {
+    // As we may have to rename functions when inheriting constructors, so we
+    // have to get all the unique function names so as to prevent a constructor
+    // being given the same name as an existing function
+    std::unordered_set<std::string> function_names;
+    for (const auto &class_info: classes) {
+        for (const auto &func_info: class_info.second.get_functions()) {
+            function_names.insert(func_info.first);
+        }
+    }
+
+    // Go through the parents, and copy the parents' functions to the child
+    for (const auto &parent: parents) {
         if (classes.at(parent).parents.size() > 0) {
             classes.at(parent).handle_inheritance(classes);
         }
         for (const auto &[name, func]: classes.at(parent).functions) {
-            if (name != "c__" or not functions.count("c__")) {
+            if (name != "c__") {
+                // If the function isn't a constructor, add it to the child
                 add_function(name, func);
             } else {
-                functions["c__"].insert(functions["c__"].begin(), func.begin(), func.end());
+                // Copy the parent's constructor with a changed, unique name, so
+                // as to not conflict with an existing function
+                auto ctor_name = "c__" + parent;
+                while (function_names.count(ctor_name)) {
+                    ctor_name += "_";
+                }
+                add_function(ctor_name, func);
+
+                auto &ctor = functions["c__"];
+                if (ctor.size() < 2 or
+                    ctor[0].get_type() != CommandType::PushName or
+                    ctor[0].get_string() != "_t" or
+                    ctor[1].get_type() != CommandType::AssignSelf)
+                {
+                    // Add two instructions to the beginning, assigning a self
+                    // pointer to a temporary variable, so we can call the parent
+                    // constructors on the newly-created object
+                    ctor.emplace(ctor.begin(), CommandType::AssignSelf, "", 0, 0);
+                    ctor.emplace(ctor.begin(), CommandType::PushName, "_t", "", 0, 0);
+                }
+
+                // Add the call to the parent constructor to the beginning of
+                // the constructor, after the self-assignment to a temporary
+                CommandList ctor_call {
+                    {CommandType::PushName, "_t", "", 0, 0},
+                    {CommandType::PushName, ctor_name, "", 0, 0},
+                    {CommandType::GetFunction, "", 0, 0},
+                    {CommandType::ExecuteFunc, "", 0, 0}
+                };
+                ctor.insert(ctor.begin() + 2, ctor_call.begin(), ctor_call.end());
             }
         }
     }
+
+    // Empty the parents list so we know we don't have anything to inherit from
     parents = {};
 }
 
